@@ -1,0 +1,38 @@
+{
+  "id": "two_rivers_zurich",
+  "title": "Two Rivers in Zürich",
+  "category": "exact_knowledge",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Exact knowledge lookup for canonical rivers in Zurich. expected_not_contains makes the check two-sided. Both river names appear in a sentence that denies they run through Zurich, so the negation has to be excluded explicitly."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What are the names of the two main rivers in Zurich?"
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": [
+      "Limmat",
+      "Sihl"
+    ],
+    "expected_not_contains": [
+      "Neither",
+      "not the Limmat",
+      "not the Sihl",
+      "does not run",
+      "do not run"
+    ],
+    "canonical_answer": "The two main rivers in Zurich are the Limmat and the Sihl."
+  }
+}

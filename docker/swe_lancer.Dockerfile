@@ -1,0 +1,129 @@
+# This file is no longer used: the swe_lancer suite now runs the task images SWE-Lancer publishes
+# (swelancer/swelancer_x86_<task>:releasev1, swelancer/swelancer_x86_monolith:releasev1) from its
+# harness image gbench/docker/swe_lancer_harness.Dockerfile. Kept until the maintainers remove it.
+#
+# Canonical SWELancer per-task image for gbench's `swe_lancer` suite, built LOCALLY (never pulled).
+#
+# Vendored from openai/SWELancer-Benchmark Dockerfile_x86 (the Expensify + Playwright E2E grading
+# environment), with the ONE fix upstream now needs: recent Miniconda refuses `conda create` until
+# the default channels' Terms of Service are accepted non-interactively. Everything else is verbatim.
+#
+# Build (context = the SWELancer checkout, which supplies requirements.txt + issues/ + runtime_scripts/):
+#   docker build -t swelancer -f docker/swe_lancer.Dockerfile <SWELANCER_CHECKOUT>
+#
+# The gbench runner drives this image via the predictions adapter (run_swelancer_eval.py) + nanoeval;
+# grading runs the task's hidden Playwright pytest inside the container. This is a HEAVY image
+# (Expensify/App monorepo + browsers) and a graded run needs a Docker-in-the-loop / GUI-capable host.
+FROM ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVM_DIR=/root/.nvm
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/tests
+ENV DISPLAY=:99
+ENV LIBGL_ALWAYS_INDIRECT=1
+
+RUN apt-get update && apt-get install -y \
+    clang curl git wget tar gzip gnupg openssh-client xz-utils patch \
+    --no-install-recommends
+
+RUN apt install software-properties-common -y && \
+    add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt-get update && apt-get install -y \
+    python3.12 python3.12-venv python3.12-dev --no-install-recommends
+
+# Install conda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
+    && bash /tmp/miniconda.sh -b -p /opt/conda \
+    && rm -f /tmp/miniconda.sh \
+    && /opt/conda/bin/conda clean -ya
+ENV PATH="/opt/conda/bin:$PATH"
+
+# gbench fix: recent Miniconda blocks `conda create` until the default channels' ToS are accepted.
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+# Create testbed
+RUN conda create -n testbed python=3.12 -y
+
+# Install browser dependencies
+RUN apt-get install -y \
+    chromium-browser fonts-liberation fonts-noto-color-emoji libnss3-tools \
+    libatk-bridge2.0-0 libnss3 libxcomposite1 libxrandr2 libxdamage1 libxkbcommon0 \
+    libgbm1 libasound2 libpangocairo-1.0-0 libgtk-3-0 --no-install-recommends
+
+# Install Xvfb and VNC tools
+RUN apt-get install -y xvfb x11vnc novnc websockify --no-install-recommends
+
+# Install bspwm supporting tools
+RUN apt-get install -y bspwm feh xterm --no-install-recommends
+
+# Install dependencies related to tests
+RUN apt-get install -y mkcert watchman python3-pyqt5 ffmpeg xclip --no-install-recommends
+
+# Install nginx, ruby, and pusher-fake
+RUN apt-get install -y nginx --no-install-recommends
+RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB && \
+    curl -sSL https://get.rvm.io | bash -s stable && \
+    usermod -a -G rvm root
+RUN bash -c 'source /etc/profile.d/rvm.sh && rvm install ruby 3.3.4'
+RUN bash -c 'source /etc/profile.d/rvm.sh && gem install pusher:2.0.3 pusher-fake:6.0.0'
+
+# Generate self-signed certificate with CN=pusher_proxy
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/pusher.key -out /etc/nginx/ssl/pusher.crt \
+    -subj "/C=US/ST=State/L=City/O=Organization/CN=ws-mt1.pusher.com"
+
+# Clone the Expensify app
+RUN git clone https://github.com/Expensify/App.git /app/expensify --single-branch
+
+# Install NVM and Node.js
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
+    . "$NVM_DIR/nvm.sh"
+
+# Install Pip + harness requirements (from the SWELancer checkout = build context)
+# gbench fix: a distutils-installed `blinker 1.4` (from the base image) cannot be uninstalled by
+# pip to satisfy the newer pin flask/mitmproxy require; --ignore-installed shadows it cleanly.
+COPY requirements.txt .
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.12 get-pip.py && \
+    python3.12 -m pip install --upgrade pip && \
+    python3.12 -m pip install --no-cache-dir --ignore-installed blinker && \
+    python3.12 -m pip install --no-cache-dir -r requirements.txt
+
+# Setup playwright
+RUN python3.12 -m playwright install
+RUN python3.12 -m playwright install-deps
+
+# bspwm config
+RUN mkdir -p /root/.config/bspwm
+RUN echo '#!/bin/bash\nbspc monitor -d 1 2 3 4\nbspc config automatic_scheme spiral\nbspc config border_width 2\nbspc config window_gap 8' > /root/.config/bspwm/bspwmrc
+RUN chmod +x /root/.config/bspwm/bspwmrc
+
+RUN mkdir -p /app/tests
+COPY issues/ /app/tests/issues/
+COPY utils/ /app/tests/utils/
+COPY runtime_scripts/setup_expensify.yml /app/tests/setup_expensify.yml
+COPY runtime_scripts/setup_mitmproxy.yml /app/tests/setup_mitmproxy.yml
+COPY runtime_scripts/run_test.yml /app/tests/run_test.yml
+COPY runtime_scripts/run_fixed_state.yml /app/tests/run_fixed_state.yml
+COPY runtime_scripts/run_user_tool.yml /app/tests/run_user_tool.yml
+COPY runtime_scripts/run_broken_state.yml /app/tests/run_broken_state.yml
+COPY runtime_scripts/setup_eval.yml /app/tests/setup_eval.yml
+COPY runtime_scripts/run.sh /app/tests/run.sh
+COPY runtime_scripts/replay.py /app/tests/replay.py
+COPY runtime_scripts/rewrite_test.py /app/tests/rewrite_test.py
+COPY runtime_scripts/npm_fix.py /app/expensify/npm_fix.py
+COPY runtime_scripts/pusher_nginx.conf /etc/nginx/nginx.conf
+RUN chmod +x /app/tests/run.sh
+WORKDIR /app/expensify
+
+EXPOSE 5901
+EXPOSE 5900
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
+    update-alternatives --set python /usr/bin/python3
+
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
+CMD ["/app/tests/run.sh"]

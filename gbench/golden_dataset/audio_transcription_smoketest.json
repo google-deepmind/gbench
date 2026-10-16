@@ -1,0 +1,49 @@
+{
+  "id": "audio_transcription_smoketest",
+  "title": "Audio Speech Transcription Test",
+  "category": "multimodal_audio",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Transcribe speech input audio into text exact output. expected_not_contains makes the check two-sided. A model with no audio path often declines and then guesses the content in prose, which contains both expected words without ever having transcribed anything."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Please transcribe the spoken question in this audio clip.",
+        "media": [
+          {
+            "type": "audio",
+            "mime_type": "audio/wav",
+            "url": "assets/what_color_is_cheese.wav",
+            "format": "wav"
+          }
+        ]
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": [
+      "color",
+      "cheese"
+    ],
+    "expected_not_contains": [
+      "cannot",
+      "can't",
+      "can not",
+      "not able to",
+      "unable to",
+      "I do not have",
+      "I don't have",
+      "no audio"
+    ],
+    "canonical_answer": "What color is cheese?"
+  }
+}

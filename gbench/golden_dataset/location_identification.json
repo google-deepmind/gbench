@@ -1,0 +1,41 @@
+{
+  "id": "location_identification",
+  "title": "Location and Landmark Identification",
+  "category": "location_identification",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Identify famous landmarks and their city locations. expected_not_contains makes the check two-sided. 'Paris' appearing somewhere is not an answer if the sentence around it names a different city or negates it."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "In which city is the Eiffel Tower located?"
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": [
+      "Paris"
+    ],
+    "expected_not_contains": [
+      "not in Paris",
+      "not located in Paris",
+      "Rome",
+      "London",
+      "Berlin",
+      "Madrid",
+      "Lyon",
+      "Las Vegas",
+      "Tokyo"
+    ],
+    "canonical_answer": "The Eiffel Tower is located in Paris, France."
+  }
+}

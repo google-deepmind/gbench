@@ -1,0 +1,39 @@
+{
+  "id": "translation_romance",
+  "title": "Romance Language Translation",
+  "category": "translation",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Translate English greeting to Spanish. expected_not_contains makes the check two-sided. It rejects answers that reach for another Romance or Germanic language while still quoting the Spanish."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Translate to Spanish: 'Hello, how are you?'"
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": [
+      "Hola",
+      "cómo estás"
+    ],
+    "expected_not_contains": [
+      "Bonjour",
+      "comment allez",
+      "Guten Tag",
+      "wie geht es",
+      "Ciao",
+      "come stai"
+    ],
+    "canonical_answer": "Hola, ¿cómo estás?"
+  }
+}

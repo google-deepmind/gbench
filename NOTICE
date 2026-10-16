@@ -1,0 +1,491 @@
+gbench
+Copyright 2026 Google LLC
+
+This product includes software developed at Google LLC, licensed under the
+Apache License, Version 2.0 (see the LICENSE file).
+
+==============================================================================
+Bundled media assets
+==============================================================================
+
+The following files ship inside the package (gbench/golden_dataset/assets/) as
+fixed inputs to the Golden Set capability smoketests. They are not benchmark
+datasets (those are fetched at run time from their upstream sources; see
+docs/THIRD_PARTY_DATASETS.md).
+
+* starry_night.png
+    "The Starry Night" (1889) by Vincent van Gogh (1853-1890). Public domain:
+    the work was published in 1889 and its author died in 1890, so it is out of
+    copyright worldwide. Used as the input to the multimodal-vision landmark
+    smoketest (golden_dataset/multimodal_vision_landmark.json).
+
+* tellMeAboutTheSun.wav, what_color_is_cheese.wav
+    Short spoken-phrase clips (~1 s, 16 kHz, 16-bit PCM) used as inputs to the
+    audio-transcription smoketest (golden_dataset/audio_transcription_smoketest.json).
+    Produced by the gbench authors for this purpose and distributed under the
+    repository's Apache-2.0 license.
+
+==============================================================================
+Vendored third-party code, text and data (copied or ported)
+==============================================================================
+
+Several eval suites carry code, prompt text or small data files copied or
+ported from the upstream benchmark, so that prompts and scoring match it
+exactly. Each entry names the files, the upstream repository and revision, the
+license and the copyright holder. The permission notices the MIT and BSD
+licenses require are reproduced at the end of this file (and, where noted, in
+the source file too). The Apache-2.0 sources are covered by the Apache License
+2.0 text in LICENSE; none of those upstream repositories carries a NOTICE file
+(checked on their default branches, 2026-09-25). Modifications are described in
+the files.
+
+------------------------------------------------------------------------------
+MIT License (permission notice: see "MIT License text" below)
+------------------------------------------------------------------------------
+
+* gbench/third_party/eval_suites/lcb.py
+    LiveCodeBench lcb_runner prompts, extraction helpers,
+    evaluation/testing_util.py and the test output prediction code, from
+    github.com/LiveCodeBench/LiveCodeBench at commit 28fef95e.
+    Copyright (c) 2024 LiveCodeBench. The notice is also reproduced in the file.
+    The same file carries evaluation/utils_execute.py from that commit,
+    Apache-2.0 (Copyright 2020 The HuggingFace Datasets Authors; adapted from
+    openai/human-eval).
+
+* gbench/third_party/matharena_src/ and gbench/third_party/eval_suites/matharena_common.py
+    MathArena src/matharena/{__init__,parser,parse_manual,grader,utils}.py,
+    tools/submit_answer.py, tools/lean_execution.py and
+    configs/competitions/{hmmt/hmmt_feb_2026,aime/aime_2026}.yaml, byte for byte
+    from github.com/eth-sri/matharena at commit b89f2f0a; also
+    Runner._build_last_chance_prompt and PureModelSolver's _PromptFields in
+    matharena_common.py; and, in gbench/third_party/eval_suites/hmmt.py
+    (MATHARENA_MODEL_CONFIGS), the fields of the 59 configs/models/**/*.yaml files
+    that set other_params.huggingface_id, from the same commit.
+    Copyright (c) 2024 SRI Lab, ETH Zurich (full text in matharena_src/LICENSE).
+
+* gbench/third_party/eval_suites/multipl_e.py (DSPy part)
+    Text rendered by, and the parse logic of, DSPy 3.0.0b1's ChatAdapter
+    (github.com/stanfordnlp/dspy, tag 3.0.0b1).
+    Copyright (c) 2023 Stanford Future Data Systems. The notice is also
+    reproduced in the file.
+
+* gbench/third_party/eval_suites/simpleqa.py, healthbench.py, gpqa.py (also used by
+  gpqa_diamond.py), multilingual_mmlu.py, browsecomp.py
+    Grader and query templates, answer patterns and normalizers from
+    github.com/openai/simple-evals at commit 652c89d0.
+    Copyright (c) 2024 OpenAI.
+
+* gbench/third_party/eval_suites/humanitys_last_exam.py
+    Prompts, judge template and calibration error from
+    github.com/centerforaisafety/hle at commit 22ed3074.
+    Copyright (c) 2025 centerforaisafety.
+
+* gbench/third_party/eval_suites/acebench.py and gbench/third_party/_acebench_vendor/
+    System and agent prompts (model_inference/prompt_en.py, prompt_zh.py; the prompt constants of
+    multi_turn/common_agent.py, multi_turn/APIModel_user.py, multi_step/common_agent_step.py), the
+    agent scenario classes (model_inference/multi_turn/scenarios{en,zh}/), checker.py / utils.py
+    (decode_ast, normal_checker, special_eval, agent_checker), eval_main.py agent_eval /
+    agent_eval_process and the common_inference / execution-role / execute_agent_func_call logic,
+    from github.com/chenchen0103/ACEBench at commit 56dd66cf.
+    Copyright (c) Microsoft Corporation (as the upstream LICENSE states).
+
+* gbench/third_party/_json_repair_vendor/
+    json_repair 0.44.1: the Python files of the PyPI wheel
+    json_repair-0.44.1-py3-none-any.whl (sha256
+    51d82532c3b8263782a301eb7904c75dce5fee8c0d1aba490287fc0ab779ac50), verbatim,
+    used by beam_128k.py. Copyright (c) 2023 Stefano Baccianella. The MIT
+    permission notice is also kept in the directory's LICENSE file.
+
+* gbench/third_party/eval_suites/api_bank.py
+    Prompt templates from api-bank/evaluator.py in
+    github.com/AlibabaResearch/DAMO-ConvAI at commit f30ccf22.
+    Copyright (c) 2022 Alibaba Research.
+
+* gbench/third_party/eval_suites/spider2.py
+    evaluate.py vectors_match, from github.com/xlang-ai/Spider2 at commit
+    ce2e8366. Copyright (c) 2024 bird_sql.
+
+* gbench/third_party/eval_suites/arc_agi.py
+    prompts/system_prompt.txt and src/arc_agi_benchmarking/utils/parsing.py from
+    github.com/arcprize/arc-agi-benchmarking at commit 28e67d54.
+    Copyright (c) 2025 ARC Prize Foundation. The ARC-AGI-1 evaluation data comes
+    from github.com/fchollet/ARC-AGI at commit 39903044 (Apache-2.0), downloaded
+    at run time, not redistributed.
+
+* gbench/third_party/eval_suites/cruxeval.py
+    prompts.py and openai/openai_prompt.py extractors, and
+    evaluation/utils_execute.py (vendored verbatim; itself adapted from
+    openai/human-eval, MIT), from github.com/facebookresearch/cruxeval at commit
+    190faf16. Copyright (c) 2023 Meta.
+
+* gbench/third_party/eval_suites/causalbench.py
+    Prompt template, system prompt, pred_rel_lookup, clean_pred_func,
+    rel_normalize and the minority-label metric from code/run_model.py of
+    github.com/causalNLP/corr2cause at commit 21d80350 (Copyright (c) 2023
+    CausalNLP), and lstrip_word from github.com/zhijing-jin/efficiency at commit
+    69d191bc (Copyright (c) 2019, Zhijing Jin).
+
+* gbench/third_party/eval_suites/lab_bench.py (chembench part)
+    The chembench constants and helpers LAB-Bench's zero_shot.py imports
+    (post_process_prompts, prepare_mcq_answer, run_regex, MCQ templates), from
+    github.com/lamalab-org/chembench. Copyright (c) 2024 ChemBench maintainers.
+    (The LAB-Bench part of this file is listed under CC BY-SA 4.0 below.)
+
+* gbench/third_party/eval_suites/longbench_v2_code.py
+    prompts/0shot.txt and pred.py extract_answer / truncation from
+    github.com/THUDM/LongBench at commit 2e00731f.
+    Copyright (c) 2023 THU-KEG & Zhipu AI.
+
+* gbench/third_party/eval_suites/mmlu.py
+    evaluate.py prompt formatting from github.com/hendrycks/test at commit
+    4450500f. Copyright (c) 2020 Dan Hendrycks.
+
+* gbench/third_party/eval_suites/coco_caption.py, chartqa.py, docvqa.py, infographicvqa.py,
+  textvqa.py, vqa_common.py
+    Task prompts and the chartqa_process_results / textvqa_process_results /
+    api/metrics.py anls scoring logic from github.com/EvolvingLMMs-Lab/lmms-eval
+    at commit 42296f8f. Copyright (c) 2025 LMMs-Lab.
+
+* gbench/third_party/eval_suites/medxpertqa.py
+    Prompts and answer_cleansing from github.com/TsinghuaC3I/MedXpertQA (eval/)
+    at commit 5f1db162. Copyright (c) 2025 TsinghuaC3I.
+
+* gbench/third_party/eval_suites/gsm8k.py
+    The gsm8k_cot task settings (8 exemplars, stop sequences, filters,
+    exact_match settings) from lm_eval/tasks/gsm8k/gsm8k-cot.yaml and the
+    RegexFilter/exact_match logic of github.com/EleutherAI/lm-evaluation-harness
+    at commit d6de8164. Copyright (c) 2020 EleutherAI.
+
+* gbench/third_party/eval_suites/beam_128k.py
+    Probing-question prompt, judge prompts, parse_json_response and event
+    ordering scoring from github.com/mohammadtavakoli78/BEAM at commit b2da22ea.
+    Copyright (c) 2025 Mohammad Tavakoli.
+
+* gbench/third_party/eval_suites/mcp_atlas.py and docker/mcp_atlas.Dockerfile
+    Server health-check calls, tool-reply mapping, claim-scoring prompt and
+    schema, and the agent-environment Dockerfile, from
+    github.com/scaleapi/mcp-atlas at commit f24ba3fb. Copyright (c) 2026 Scale.
+    The Dockerfile's `mongo` target downloads the release's
+    data_exports/mongo_dump_video_game_store-UNZIP-FIRST.zip (same MIT
+    repository) at build time; it is not shipped.
+
+* gbench/third_party/eval_suites/nexusraven_api_eval.py (LangChain part)
+    LangChain 0.0.294's structured-chat agent prompt text and the
+    OutputFixingParser NAIVE_FIX prompt (github.com/langchain-ai/langchain,
+    tag v0.0.294). Copyright (c) Harrison Chase (the LICENSE at that tag).
+
+* gbench/docker/mini_swe_agent_v2_run.py
+    Follows minisweagent.run.benchmarks.swebench.process_instance of
+    github.com/SWE-agent/mini-swe-agent (releases 2.4.2 / 2.4.6).
+    Copyright (c) 2025 Kilian A. Lieret and Carlos E. Jimenez.
+
+* gbench/third_party/eval_suites/mrcr.py
+    The grade() function (difflib SequenceMatcher ratio) from the openai/mrcr
+    dataset card on the Hugging Face Hub (dataset license: MIT). Copyright
+    OpenAI.
+
+* gbench/docker/gaia2_run.py,
+  tests/test_gaia2_toolbench_judge_protocol_and_credentials.py
+    A port of are/simulation/agents/llm/litellm/litellm_engine.py
+    LiteLLMEngine.chat_completion from meta-agents-research-environments 1.2.0
+    (PyPI; github.com/facebookresearch/meta-agents-research-environments) with
+    gbench's changes (the agent request fields, the returned metadata, the judge
+    reply read verbatim), and the verdict vote of
+    gaia2-cli/core/gaia2_core/judge/checkers.py LLMChecker from the same
+    repository (main). Copyright (c) Meta Platforms, Inc. and affiliates.
+
+------------------------------------------------------------------------------
+Apache License 2.0 (license text: LICENSE)
+------------------------------------------------------------------------------
+
+* gbench/third_party/eval_suites/_ifeval_vendor/
+    instruction_following_eval/ of github.com/google-research/google-research
+    at commit e6890f85, verbatim except the imports. Copyright The Google
+    Research Authors (each file keeps its license header).
+
+* gbench/third_party/_teval_vendor/ and gbench/third_party/eval_suites/t_eval.py
+    T-Eval evaluators and templates, and test.py split_special_tokens, from
+    github.com/open-compass/T-Eval at commit 58f22406 (import shims only). The
+    T-Eval authors.
+
+* gbench/third_party/eval_suites/charxiv_constants.py and gbench/third_party/eval_suites/charxiv.py
+    src/constants.py (verbatim), descriptive_utils.py and reasoning_utils.py
+    helpers from github.com/princeton-nlp/CharXiv at commit 7ebe88f. The
+    CharXiv authors.
+
+* gbench/third_party/eval_suites/wildbench.py
+    evaluation/eval_template.score.v2.md and eval_template.pairwise.v2.md
+    (verbatim), src/eval.py placeholder_generation / shorten / parse logic,
+    src/openai_batch_eval/batch_results_format.py reading, and the
+    leaderboard/data_dir/_create_tables.py task groups, weights and pairwise
+    reward and _merge_results.py columns, from github.com/allenai/WildBench at
+    commit d6b8dcaf. The WildBench authors. Also from that commit: the
+    leaderboard/wb_elo.py vote and Elo logic (get_all_votes, compute_single_round,
+    compute_elo_based_on_votes) and the Arena Elo starting points of
+    leaderboard/data_dir/all_stat.json; and the WB-Elo settings recorded in the
+    leaderboard Space allenai/WildBench (revision 4b94d1d8)
+    data_dir/wb_elo_results.LM=-1.json and LM=1500.json.
+
+* gbench/third_party/eval_suites/bfcl.py, gbench/third_party/eval_suites/bfcl_live.py, gbench/third_party/eval_suites/fc_common.py,
+  gbench/third_party/eval_suites/gorilla_apibench.py
+    BFCL's ast_checker, eval_runner / eval_runner_helper aggregation,
+    convert_to_tool and the language-hint preprocessing (bfcl_eval), and
+    gorilla/eval get_llm_responses.py encode_question and the
+    eval-scripts/ast_eval_{th,hf,tf}.py matching, from
+    github.com/ShishirPatil/gorilla at commit 6ea5797. The Gorilla authors.
+
+* gbench/third_party/eval_suites/nestful.py
+    The in-context examples and src/scorer.py / src/utils.py ports from
+    github.com/IBM/NESTFUL at commit fc2c4123. IBM.
+
+* gbench/third_party/eval_suites/seal_tools.py
+    LLM_Evaluation/src/llm_tools/evaluation/transform_output.py port from
+    github.com/fairyshine/Seal-Tools at commit ce753ecd. The Seal-Tools authors.
+
+* gbench/third_party/eval_suites/toolbench.py, docker/toolbench.Dockerfile,
+  docker/toolbench_patch_convert.py, docker/toolbench_patch_llm.py,
+  docker/toolbench_patch_simulator.py, docker/toolbench_patch_client.py,
+  tests/test_delegated_harness_request_settings.py (a copy of lines 1-50 of
+  toolbench/inference/LLM/chatgpt_function_model.py, chat_completion_request,
+  as a test fixture),
+  tests/test_gaia2_toolbench_judge_protocol_and_credentials.py (fragments of
+  server/main.py and rapidapi_multithread.py as test fixtures),
+  tests/test_gaia2_toolbench_capabilities_and_endpoint_failures.py (fragments
+  of rapidapi_multithread.py, and a reduced ChatGPTFunction modelled on
+  toolbench/inference/LLM/chatgpt_function_model.py, as test fixtures)
+    ToolEval prompts and config.yaml function descriptions (verbatim) and
+    build-time patches (the chatgpt_function client and its record of failed
+    model requests, the DFSDT client's /virtual request headers and the query
+    id it hands the model client, the answer converter, and in server/main.py
+    the cache-miss simulator call, the real-API proxy call and the /virtual
+    route) to github.com/THUNLP-MT/StableToolBench at commit aa4ed9f4
+    (Apache-2.0). The StableToolBench authors. The SoWR reference answers
+    (huggingface.co/datasets/stabletoolbench/baselines data_baselines.zip at
+    ea70398f, Apache-2.0) are downloaded at run time, not shipped.
+
+* gbench/third_party/eval_suites/loft_scifact.py
+    Prompt constants and the prompt registry build from
+    github.com/google-deepmind/loft at commit 219f68e. Google LLC.
+
+* gbench/third_party/eval_suites/mmlu_pro.py
+    evaluate_from_apiX.py prompt header, format_example, _PATTERNS and extract_answer
+    (verbatim), and its streaming_request token accounting and process_one retry schedule, from
+    github.com/TIGER-AI-Lab/MMLU-Pro at commit f418b116 (Apache-2.0). The MMLU-Pro authors.
+
+* gbench/third_party/eval_suites/mmlu_redux.py
+    HELM's MMLU multiple_choice_joint adapter and sample_examples, from
+    github.com/stanford-crfm/helm (v0.5.1, ccf1df596b). Stanford CRFM.
+
+* gbench/third_party/eval_suites/mmmu_pro.py
+    mmmu-pro/prompts.yaml and parse_multi_choice_response, and the
+    request_with_images system message of mmmu-pro/infer/infer_gpt.py, from
+    github.com/MMMU-Benchmark/MMMU at commit 268471d0. The MMMU authors.
+
+* gbench/third_party/eval_suites/vqa_common.py (relaxed correctness)
+    pix2struct/metrics.py relaxed_correctness from
+    github.com/google-research/pix2struct at commit 6fe25c1d. Google LLC.
+
+* gbench/third_party/eval_suites/ruler.py
+    Scoring constants and string_match metrics from scripts/eval/synthetic of
+    github.com/NVIDIA/RULER at commit c3f5e3b4. NVIDIA.
+
+* gbench/third_party/eval_suites/i18n_translate.py
+    The WMT19 test sets and BLEU / chrF scoring come from the sacrebleu package
+    at run time (github.com/mjpost/sacrebleu, release 2.6.0, Apache-2.0); a chrF
+    port of sacrebleu/metrics/chrf.py stays in the file only for per-segment
+    inspection. The sacrebleu authors.
+
+* gbench/third_party/eval_suites/screenspot_pointing.py
+    Box conversion as in pretrain/screenspot_test.py of
+    github.com/njucckevin/SeeClick at commit 0ef37ac4 (Apache-2.0). The SeeClick
+    authors.
+
+* gbench/third_party/eval_suites/scicode.py, gbench/third_party/eval_suites/scicode_data/
+  and gbench/third_party/_scicode_vendor/
+    Prompt templates from eval/data/ (protocol at commit e3158ea0), the
+    src/scicode/parse/parse.py helpers (process_hdf5_to_tuple,
+    extract_function_name, get_function_from_code), the HDF5 loader part of it
+    (process_hdf5_to_tuple and its helpers) vendored verbatim as
+    _scicode_vendor/scicode/parse/parse.py (Apache-2.0), three supplied sub-step
+    files (see scicode_data/ATTRIBUTION.md) and src/scicode/compare/cmp.py
+    (vendored verbatim as _scicode_vendor/scicode/compare/cmp.py, Apache-2.0),
+    from github.com/scicode-bench/SciCode. The SciCode authors.
+
+* gbench/third_party/eval_suites/bigcodebench.py and docker/bigcodebench.Dockerfile
+    A port of generate.py defaults (instruction_prefix, response_prefix) and
+    provider/utility.py make_raw_chat_prompt (instruct and complete), and the
+    Docker/Evaluate.Dockerfile recipe, from
+    github.com/bigcode-project/bigcodebench at commit 09dd993f. BigCode.
+
+* gbench/third_party/eval_suites/nexusraven_api_eval.py (NexusRaven part)
+    raven/utils.py build_functions and the toolllm evaluation helpers from
+    github.com/nexusflowai/NexusRaven at commit f3288276. Nexusflow.
+
+* gbench/third_party/eval_suites/omnidocbench.py
+    The general-VLM instruction of tools/model_infer/Qwen2VL_img2md.py from
+    github.com/opendatalab/OmniDocBench at commit 193627ae. The OmniDocBench
+    authors.
+
+* gbench/third_party/eval_suites/omnidoc_metrics.py
+    The TEDS TableTree and CustomConfig classes (_TableTree, _TedsConfig),
+    adapted from src/metric.py of github.com/ibm-aur-nlp/PubTabNet.
+    Copyright 2020 IBM.
+
+* gbench/third_party/eval_suites/putnam_formal.py
+    lean4/scripts/rewrite_solutions.py, ported, from
+    github.com/trishullab/PutnamBench at commit 97b5e945 (lean4/LICENSE). The
+    PutnamBench authors.
+
+* gbench/docker/mcp_bench_cascade_judge.py
+    The judge-reply JSON cleanup of LLMProvider.clean_and_parse_json, from
+    github.com/Accenture/mcp-bench at commit 7a8eaeae (Apache-2.0 per its
+    README; the repository has no LICENSE file). Accenture.
+
+* gbench/third_party/eval_suites/gaia.py
+    The official question_scorer of the Hugging Face Space
+    gaia-benchmark/leaderboard (Space license: apache-2.0); the GAIA system
+    prompt is from the GAIA paper (arXiv:2311.12983). The GAIA authors.
+
+* gbench/third_party/eval_suites/aa_lcr.py
+    Prompt template and equality-checker prompts from the
+    ArtificialAnalysis/AA-LCR dataset card (dataset license: apache-2.0).
+    Artificial Analysis.
+
+------------------------------------------------------------------------------
+BSD licenses (notices: see "BSD license texts" below)
+------------------------------------------------------------------------------
+
+* gbench/third_party/eval_suites/vqa_common.py (EvalAI answer processor)
+    EvalAIAnswerProcessor from mmf/utils/m4c_evaluators.py of
+    github.com/facebookresearch/mmf at commit b0ffc7fb. BSD License for MMF software, Copyright (c) Facebook, Inc. and
+    its affiliates.
+
+------------------------------------------------------------------------------
+Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)
+------------------------------------------------------------------------------
+
+* gbench/third_party/eval_suites/lab_bench.py (LAB-Bench part)
+    task.py question builders, randomize_choices with REFUSE_CHOICE,
+    zero_shot.MCQ_INSTRUCT_TEMPLATE and the score_baseline.py CoT line, from
+    github.com/Future-House/LAB-Bench at commit 998a8e0a, whose repository is
+    licensed CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+    FutureHouse. These portions remain under CC BY-SA 4.0 (share-alike), not
+    under the Apache License that covers the rest of gbench.
+
+------------------------------------------------------------------------------
+Fetched at run time, not shipped
+------------------------------------------------------------------------------
+
+The following suites use upstream code or text whose license does not permit
+shipping it under gbench's terms; they download it from the pinned upstream at
+run time instead of carrying a copy:
+
+* cimemories
+    Prompt texts, persona texts and the label / metric logic of
+    github.com/facebookresearch/CIMemories at commit e39806e9. CC BY-NC 4.0
+    (non-commercial), Copyright (c) Meta Platforms, Inc. and affiliates.
+
+* multipl_e
+    stop_at_stop_token, postprocess_completion and the Completion signature text
+    of dataset_builder/chat_completions.py (fetched at run time), and the
+    evaluation/ directory (its Dockerfile and src harness), downloaded and
+    sha256-checked when the local evaluator image is built
+    (docker/multipl_e.Dockerfile, docker/multipl_e.sha256), github.com/nuprl/MultiPL-E
+    at commit 3025a531. BSD 3-Clause License with Machine Learning Restriction,
+    Copyright (c) 2022 Northeastern University, Oberlin College, Roblox Inc,
+    Stevens Institute of Technology, University of Massachusetts Amherst, and
+    Wellesley College.
+
+Benchmark datasets are always fetched at run time; see
+docs/THIRD_PARTY_DATASETS.md. Harnesses that run in local images (for example
+OJBench, AGPL-3.0, which docker/ojbench_patch_judger.py patches at image build
+time) are cloned from their pinned upstream when the image is built and are not
+part of this repository.
+
+------------------------------------------------------------------------------
+Upstream license not confirmed (flagged for review)
+------------------------------------------------------------------------------
+
+* gbench/third_party/eval_suites/complexfuncbench.py and gbench/third_party/eval_suites/_complexfuncbench_data/
+    Judge prompts (prompts/compare.py, prompts/response.py), the CompareFC and
+    runner ports, and utils/exact_match_values.json / tool_info.json from
+    github.com/THUDM/ComplexFuncBench at commit c37b284. The GitHub
+    repository has no license file; the THUDM/ComplexFuncBench dataset on the
+    Hugging Face Hub is tagged apache-2.0.
+
+* gbench/third_party/eval_suites/deepsearch_qa.py
+    The rater prompt and rating helpers of the Kaggle notebook
+    andrewmingwang/deepsearchqa-starter-code (version 1) for google/deepsearchqa
+    (dataset license: apache-2.0); the notebook states no license of its own.
+
+* gbench/third_party/eval_suites/frames.py
+    The auto-rating prompt, transcribed from the FRAMES paper (arXiv 2409.12941
+    v3); the google/frames-benchmark dataset is apache-2.0.
+
+* gbench/third_party/eval_suites/imo_answer_bench.py
+    The AnswerAutoGrader prompt, transcribed from the IMO-AnswerBench paper
+    (arXiv 2511.01846, Appendix A.5); the benchmark itself is published in
+    github.com/google-deepmind/superhuman at commit 955558ad (code Apache-2.0,
+    benchmark materials CC BY 4.0).
+
+* docker/swe_lancer.Dockerfile (swe_lancer)
+    Dockerfile_x86 of github.com/openai/SWELancer-Benchmark; the repository's
+    default branch has no license file.
+
+==============================================================================
+MIT License text
+==============================================================================
+
+Applies to each MIT entry above, together with that entry's copyright line:
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to
+    deal in the Software without restriction, including without limitation the
+    rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+    sell copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+    IN THE SOFTWARE.
+
+==============================================================================
+BSD license texts
+==============================================================================
+
+BSD License for MMF software (vqa_common.py):
+
+    Copyright (c) Facebook, Inc. and its affiliates. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+     * Redistributions of source code must retain the above copyright notice,
+       this list of conditions and the following disclaimer.
+
+     * Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+
+     * Neither the name Facebook nor the names of its contributors may be used
+       to endorse or promote products derived from this software without
+       specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.

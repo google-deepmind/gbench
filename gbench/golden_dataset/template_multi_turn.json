@@ -1,0 +1,49 @@
+{
+  "id": "template_multi_turn",
+  "title": "Chat Template Multi Turn History",
+  "category": "chat_template",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.0",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      },
+      {
+        "version": "1.1",
+        "reason": "The leak guard no longer lists fixed Gemma turn and tool delimiters. It forbids the served model's own chat-template tokens, read at run time from its tokenizer (forbid_chat_template_tokens), so a template leak is caught for any model family; plain strings that are not model tokens stay in expected_not_contains. An unloadable tokenizer makes the case a harness error."
+      }
+    ],
+    "description": "Template-sensitive half of a pair. Five alternating turns where the final question is answerable only if the earlier turns arrived intact and in order: 'second warehouse' has to resolve to Lima rather than Osaka, so a template that drops prior turns, reorders them or fails to close an assistant turn produces 512 instead of 128. Pair this with template_multi_turn_twin, which flattens the same five turns into one user message. Twin passes and this fails means the content is understandable and the multi-turn serialization is what broke, so look at the chat template. Both fail means the question itself is not being answered and the template is not implicated. Two limits worth stating rather than discovering later. First, this does not catch a template that merges consecutive turns without delimiters, since both numbers still reach the model in the right order. Second, expected_not_contains deliberately does not forbid '512'. A model that shows its work with 'you said 512 first, so 128' is answering correctly, and failing it would send someone hunting a template bug that does not exist. A false pass here costs less than a false alarm, so the assertion is the weaker one on purpose. What is forbidden is the served model's own chat-template tokens (forbid_chat_template_tokens): gbench reads them at run time from the model's tokenizer, every special token plus every added token that appears in its chat template (whitespace, one-character and plain-word tokens, which correct answers contain, are left out), because a template should consume its delimiters and never let them reach visible output. The list is derived rather than written here, so the check covers whatever model family is under test, and the tokens actually checked are recorded in the result. If the tokenizer cannot be loaded the case is a harness error, not a pass."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "My first warehouse is in Osaka and it holds 512 pallets."
+      },
+      {
+        "role": "assistant",
+        "content": "Noted."
+      },
+      {
+        "role": "user",
+        "content": "My second warehouse is in Lima and it holds 128 pallets."
+      },
+      {
+        "role": "assistant",
+        "content": "Noted."
+      },
+      {
+        "role": "user",
+        "content": "How many pallets does my second warehouse hold? Reply with just the number."
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": ["128"],
+    "forbid_chat_template_tokens": true,
+    "canonical_answer": "128"
+  }
+}

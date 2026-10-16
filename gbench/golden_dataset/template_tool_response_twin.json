@@ -1,0 +1,34 @@
+{
+  "id": "template_tool_response_twin",
+  "title": "Chat Template Tool Response Twin",
+  "category": "chat_template",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.0",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      },
+      {
+        "version": "1.1",
+        "reason": "Same leak guard change as its pair: the fixed Gemma delimiter list is replaced by the served model's own chat-template tokens, read from its tokenizer at run time (forbid_chat_template_tokens), so the pair keeps asserting the same thing on both sides."
+      }
+    ],
+    "description": "Control half of a pair with template_tool_response. Same two values, same question, same assertions, but delivered in a single plain user turn with no tools advertised and no assistant or tool roles in the history. That is the smallest surface a chat template has, so this case cannot fail for a template reason without every other Golden Set case failing alongside it, at which point the category row is not the signal you are reading anyway. Its only job is to answer the question its twin raises: could the model read an opaque token out of context and repeat it? If yes and the twin case still failed, the fault is in how the tool turn was serialized. Note this is not empirical proof of template insensitivity, which would need a deliberately broken template to demonstrate. It is a structural argument, and it holds only as long as this case stays a single user turn. Do not add tools, history or media to it."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "An order lookup for ORD-4417 returned this record: {\"order_id\": \"ORD-4417\", \"status\": \"delayed\", \"tracking_code\": \"QX7R2M\"}. Tell me the tracking code and the status."
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": ["QX7R2M", "delayed"],
+    "expected_not_contains": ["tool_call_id", "<tool_response>"],
+    "forbid_chat_template_tokens": true,
+    "canonical_answer": "Order ORD-4417 is delayed. The tracking code is QX7R2M."
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "id": "tool_call_minimal",
+  "title": "Tool Call Minimal Single Call",
+  "category": "tool_use",
+  "meta": {
+    "version": "1.0",
+    "changelog": [
+      {
+        "version": "1.0",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "The smallest possible tool call check: one tool, no required arguments, one obvious reason to call it. This exists to disambiguate function_call_single. That case asks the model to both decide to call a tool and extract 'Zurich, Switzerland' from the prompt, so a failure there does not say which half broke. This case takes argument extraction out of the picture, so a failure here means structured tool calling itself is not working, whether that is the chat template, the tool parser or the serving flags. expected_tool_calls carries an empty arguments object, and extra arguments the model volunteers are allowed, so the only assertion is that exactly one well-formed call to the right function came back on message.tool_calls. tool_choice is auto on purpose: deciding to call is part of the capability."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What time is it right now? Use the available tool."
+      }
+    ]
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_current_time",
+        "description": "Get the current time. Takes no arguments.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "golden_truth": {
+    "match_type": "tool_call",
+    "expected_tool_calls": [
+      {
+        "name": "get_current_time",
+        "arguments": {}
+      }
+    ],
+    "canonical_answer": "{\"name\": \"get_current_time\", \"arguments\": {}}"
+  }
+}

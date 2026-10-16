@@ -1,0 +1,35 @@
+{
+  "id": "identify_person",
+  "title": "Identify Canonical Person",
+  "category": "entity_identification",
+  "meta": {
+    "version": "1.2",
+    "changelog": [
+      {
+        "version": "1.2",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Entity and identity lookup ground truth task. The subject is a deceased historical figure so the ground truth can never go stale, and is deliberately non-political so the published set carries no partisan content. 'Einstein' does not appear in the prompt, so echoing the prompt cannot satisfy the assertion. expected_not_contains covers the two failure modes that still satisfy contains_all: an explicit denial that happens to contain the name, and a hedged answer that names Einstein alongside someone else. The forbidden names are limited to physicists with no contrastive role in the history of relativity, so naming one alongside Einstein is only ever a hedge. Newton, Galileo, Maxwell and Lorentz are deliberately absent for the opposite reason: a correct answer may legitimately note that general relativity superseded Newtonian or Galilean gravity, or that special relativity grew out of Maxwell's electrodynamics, and failing that answer would be worse than missing a hedge."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Which physicist developed the general theory of relativity?"
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": ["Einstein"],
+    "expected_not_contains": [
+      "not Einstein",
+      "was not Einstein",
+      "Hawking",
+      "Bohr",
+      "Tesla"
+    ],
+    "canonical_answer": "Albert Einstein developed the general theory of relativity."
+  }
+}

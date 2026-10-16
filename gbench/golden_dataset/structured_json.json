@@ -1,0 +1,27 @@
+{
+  "id": "structured_json",
+  "title": "Structured JSON Formatting",
+  "category": "structured_output",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Evaluate adherence to strict JSON formatting constraints. json_exact parses both sides and compares the parsed values, so key order and whitespace do not matter but an extra key, a missing key or a string 200 instead of an integer 200 all fail. The previous regex check passed on any response that merely mentioned both pairs somewhere."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Respond only with a JSON object containing keys 'status' with value 'success' and 'code' with value 200."
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "json_exact",
+    "canonical_answer": "{\"status\": \"success\", \"code\": 200}"
+  }
+}

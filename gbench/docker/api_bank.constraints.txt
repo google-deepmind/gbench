@@ -1,0 +1,19 @@
+# Resolved dependency set of googletrans==3.1.0a0 (API-Bank's requirements.txt pin, DAMO-ConvAI
+# f30ccf22 api-bank/requirements.txt) on python:3.10-slim: googletrans pins httpx==0.13.3, which
+# pins httpcore 0.9.*, h11 <0.10, h2 3.*, chardet 3.*, idna 2.*, rfc3986 <2; certifi and
+# hstspreload are left open by httpx and pinned here to the releases this image was validated
+# with (2026-09-27). api_bank.Dockerfile installs googletrans under these constraints so a rebuild
+# reproduces it; the freeze of each build is kept in the image at /opt/api_bank/pip-freeze.txt.
+certifi==2026.7.22
+chardet==3.0.4
+googletrans==3.1.0a0
+h11==0.9.0
+h2==3.2.0
+hpack==3.0.0
+hstspreload==2025.1.1
+httpcore==0.9.1
+httpx==0.13.3
+hyperframe==5.2.0
+idna==2.10
+rfc3986==1.5.0
+sniffio==1.3.1

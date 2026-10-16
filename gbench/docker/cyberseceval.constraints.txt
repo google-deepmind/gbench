@@ -1,0 +1,38 @@
+# Installed set of gbench's cyberseceval image (cyberseceval.Dockerfile) on python:3.10-slim:
+# semgrep==1.51.0 and PyYAML==6.0.1, the releases meta-llama/PurpleLlama's
+# CybersecurityBenchmarks/requirements.txt pins at 114d02388213ae791650b10fa61c8785661c2602 (the
+# Insecure Code Detector imports only these two), with typing_extensions at that file's 4.11.0
+# and the rest of semgrep's dependency closure at the releases this image was validated with
+# (2026-09-28). The build installs under these constraints and fails if the installed set differs;
+# the freeze of each build is kept in the image at /opt/cyberseceval/pip-freeze.txt.
+attrs==26.1.0
+boltons==21.0.0
+bracex==3.0.1
+certifi==2026.7.22
+charset-normalizer==3.5.1
+click==8.5.0
+click-option-group==0.5.9
+colorama==0.4.6
+defusedxml==0.7.1
+face==26.0.1
+glom==22.1.0
+idna==3.20
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+markdown-it-py==4.2.0
+mdurl==0.1.2
+packaging==26.3
+peewee==3.19.0
+Pygments==2.21.0
+PyYAML==6.0.1
+referencing==0.37.0
+requests==2.34.2
+rich==15.0.0
+rpds-py==0.30.0
+ruamel.yaml==0.17.40
+ruamel.yaml.clib==0.2.15
+semgrep==1.51.0
+tomli==2.0.2
+typing_extensions==4.11.0
+urllib3==1.26.20
+wcmatch==8.5.2

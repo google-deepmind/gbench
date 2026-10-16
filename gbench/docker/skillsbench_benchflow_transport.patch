@@ -1,0 +1,49 @@
+gbench fix for BenchFlow 0.6.3's deepagents agent, applied by gbench/docker/skillsbench.Dockerfile
+to the orchestrator's environment (/app/skillsbench/.venv/lib/python3.12/site-packages). Paths are
+relative to that directory. BenchFlow reads deepagents_acp_shim.py at import and uploads it into
+each task container, and runs registry.py's install command there, so both changes reach every
+rollout.
+
+benchflow/agents/deepagents_acp_shim.py: build_chat_model gives langchain's ChatOpenAI the request
+timeout in GBENCH_MODEL_REQUEST_TIMEOUT_S (seconds) when it is set. Upstream builds it with no
+timeout (timeout None), so a request the endpoint never answers waits until the task's own
+timeout. gbench passes base.request_timeout_s of the served context window with --agent-env (the
+agent sends no max_tokens), a bound no reply within the window reaches, and the result records the
+value (model_client_timeout). Unset, the shim builds ChatOpenAI exactly as upstream.
+
+benchflow/agents/registry.py: the deepagents install command installed `deepagents
+langchain-openai` unpinned, so each rollout ran whatever PyPI served that minute. It now installs
+deepagents==0.7.23 and langchain-openai==1.7.0, the latest releases when the 2026-10-10 gbench run
+resolved them (2026-10-07 and 2026-10-08 on PyPI), with --exclude-newer 2026-10-10T19:31:32Z (that
+run's start) for their dependencies.
+
+--- a/benchflow/agents/deepagents_acp_shim.py
++++ b/benchflow/agents/deepagents_acp_shim.py
+@@ -158,6 +158,12 @@
+     max_tokens = _int_env(env, "BENCHFLOW_MODEL_MAX_TOKENS")
+     if max_tokens is not None:
+         kwargs["max_tokens"] = max_tokens
++    # gbench (skillsbench_benchflow_transport.patch): the OpenAI client's request timeout, in
++    # seconds, from GBENCH_MODEL_REQUEST_TIMEOUT_S (gbench passes base.request_timeout_s of the
++    # served context window with --agent-env); unset, ChatOpenAI's own default applies.
++    request_timeout = _float_env(env, "GBENCH_MODEL_REQUEST_TIMEOUT_S")
++    if request_timeout is not None:
++        kwargs["timeout"] = request_timeout
+ 
+     return ChatOpenAI(**kwargs)
+ 
+--- a/benchflow/agents/registry.py
++++ b/benchflow/agents/registry.py
+@@ -616,7 +616,11 @@
+             # langchain-google-genai; langchain-openai is NOT a deepagents dep but
+             # is required for the OpenAI-compatible deepseek-v4-pro chat model.
+             "uv pip install -q --python /opt/benchflow/deepagents-venv/bin/python "
+-            "deepagents langchain-openai && "
++            # gbench (skillsbench_benchflow_transport.patch): the two packages at the versions
++            # the 2026-10-10 gbench run resolved (the latest then), their dependencies as of
++            # that run (--exclude-newer), so every rollout installs the same agent.
++            "--exclude-newer 2026-10-10T19:31:32Z "
++            "deepagents==0.7.23 langchain-openai==1.7.0 && "
+             # Let the sandbox user traverse + execute the venv interpreter and the
+             # uv-managed CPython it links to.
+             "chmod -R a+rX /opt/benchflow/deepagents-venv && "

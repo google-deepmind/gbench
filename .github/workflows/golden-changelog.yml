@@ -1,0 +1,87 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Policy gate: a Golden Set case that changed must say why it changed.
+#
+# Separate from test.yml on purpose. This is not a test of the code, it
+# is a rule about the dataset, and it should read as its own named check
+# in the PR so a reviewer can tell "the changelog is missing" apart from
+# "the code is broken" without opening the logs.
+#
+# It installs nothing. The gate is stdlib-only by construction, which is
+# why gbench/changelog_gate.py sits outside gbench.core: importing
+# gbench.core needs the package's third-party dependencies, and a policy
+# gate that depends on an install (and on the index being reachable) is a
+# policy gate that gets marked non-required.
+#
+# The rule itself lives in gbench/changelog_gate.py and is unit tested in
+# tests/test_changelog_gate.py, which runs under test.yml. This workflow
+# only supplies the diff.
+
+name: Golden Changelog
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Reading the diff is all this needs. Spelled out rather than inherited
+# so the job cannot pick up a write scope from a repository default.
+permissions:
+  contents: read
+
+jobs:
+  # Deliberately not restricted with a `paths:` filter. A required check
+  # that is skipped stays pending forever under branch protection, so it
+  # is safer to always run and let it no-op on PRs that touch no cases.
+  golden-changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Pinned to a hash rather than a tag. A tag is mutable, so `@v4` is a
+    # promise from whoever can move it, and this job runs on the contents
+    # of a pull request.
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      with:
+        # The gate reads both sides of the diff with `git show`, so the
+        # base commit has to be in the local object store. The default
+        # depth of 1 would make every run exit 2.
+        fetch-depth: 0
+
+    # No actions/setup-python step. The gate is stdlib-only and imports
+    # clean on Python 3.9 with nothing installed, so the runner's own
+    # python3 is enough. One less pinned dependency and one less step.
+
+    # On a pull_request the checkout is the merge commit, so diffing the
+    # PR base against the working tree yields exactly this PR's changes.
+    - name: Check Golden Set changelog entries (pull request)
+      if: github.event_name == 'pull_request'
+      run: |
+        python3 scripts/check_golden_changelog.py \
+          --base "${{ github.event.pull_request.base.sha }}"
+
+    # On a push there is no PR base, so compare against the commit the
+    # branch was at beforehand. That sha is all zeros for a branch's
+    # first push and after some force pushes, in which case there is no
+    # meaningful base and the single pushed commit is compared instead.
+    - name: Check Golden Set changelog entries (push)
+      if: github.event_name == 'push'
+      run: |
+        BASE="${{ github.event.before }}"
+        if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+           || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+          echo "No usable base commit ($BASE), falling back to HEAD^."
+          BASE="HEAD^"
+        fi
+        python3 scripts/check_golden_changelog.py --base "$BASE"

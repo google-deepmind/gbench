@@ -1,0 +1,58 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Pre-publish leak gate.
+#
+# Fails the build if any tracked file contains an internal-identifier or secret pattern, so a
+# leak regression can never land on the remote. Separate from test.yml on purpose: this is a
+# policy gate, not a code test, and should read as its own named check in the PR.
+#
+# The generic patterns are baked into scripts/check_no_leaks.sh (safe to ship). The
+# project-specific codename denylist is supplied via the `LEAK_PATTERNS` repository variable
+# (Settings > Secrets and variables > Actions > Variables) so the sensitive names never live in
+# the public tree. With the variable unset the generic scan still runs.
+
+name: Leak Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  leak-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: Scan tracked files for internal identifiers / secrets
+        env:
+          GBENCH_LEAK_PATTERNS: ${{ vars.LEAK_PATTERNS }}
+        run: bash scripts/check_no_leaks.sh
+      # A backup or merge leftover (*.bak, *.bak_*, *.bak-*, *.orig) is gitignored; one that is
+      # tracked anyway would ship. The check reads the index, so it never depends on which
+      # untracked files a checkout happens to have.
+      - name: No backup or merge-leftover file is tracked
+        run: |
+          tracked="$(git ls-files | grep -E '(\.bak|\.orig)$|\.bak[_-]' || true)"
+          if [ -n "$tracked" ]; then
+            echo "Backup files are tracked; remove them from the index (git rm --cached):"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "No backup file is tracked."

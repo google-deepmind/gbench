@@ -1,0 +1,227 @@
+gbench fix for the SWE-ReX (swe-rex 1.4.0) that SWE-agent-for-eval vendors, applied by
+gbench/docker/sweagent_for_eval.Dockerfile to the copy in the image's venv
+(venv/lib/python3.12/site-packages/swerex). Paths are relative to that site-packages directory.
+
+swerex/runtime/local.py (the bash session the runtime server in every task container runs):
+BashSession split every command with bashlex 0.18 and joined the pieces with " ; ". A heredoc
+whose operator is not the last word of its line (`cat <<EOF > f`, `python3 - <<EOF 2>&1`,
+`cat <<EOF | sh`) lost its body and terminator, and a heredoc followed by another command got that
+command on its terminator's line, so the shell waited for a terminator that never came until the
+command timed out (SWE-agent-for-eval: 90 minutes). A command holding a heredoc operator is now
+never split: its exact text goes to a file and the session runs `eval "$(cat FILE; rm -f FILE)"`,
+which bash parses as it parses a script (one line sent, one prompt, the file gone before the first
+command runs). Also: a piece that ends with the background operator `&` is no longer followed by
+" ; " (`a &` then `b` became the syntax error `a & ; b`). Every other command is split and joined
+as before.
+
+swerex/deployment/docker.py: glibc_dockerfile, which builds the runtime layer of every task
+container, installed the latest swe-rex from PyPI. It now installs swe-rex 1.4.0 and its
+dependencies at pinned versions (no resolution) and writes this patched local.py over swe-rex
+1.4.0's own, checking both files by sha256.
+
+--- a/swerex/runtime/local.py
++++ b/swerex/runtime/local.py
+@@ -1,8 +1,10 @@
+ import logging
+ import os
+ import re
++import shlex
+ import shutil
+ import subprocess
++import tempfile
+ import time
+ from abc import ABC, abstractmethod
+ from copy import deepcopy
+@@ -55,6 +57,51 @@
+ __all__ = ["LocalRuntime", "BashSession"]
+ 
+ 
++#: gbench fix (swe-rex 1.4.0 + gbench patch, 2026-10-08): a heredoc operator (`<<`, `<<-`; not
++#: the here-string `<<<`). Splitting a command that holds one with bashlex 0.18 and joining the
++#: pieces with " ; " loses text: the parse ends a command's range before the body of a heredoc
++#: whose operator is not the last word of its line (`cat <<EOF > f`, `python3 - <<EOF 2>&1`,
++#: `cat <<EOF | sh`), and the next command lands on the terminator's line, so the shell waited for
++#: a terminator that never came until the command timed out. Such a command is never split: it
++#: runs whole (_as_single_command).
++_HEREDOC_OPERATOR = re.compile(r"(?<!<)<<(?!<)")
++
++
++def _holds_heredoc(command: str) -> bool:
++    return bool(_HEREDOC_OPERATOR.search(command))
++
++
++def _as_single_command(command: str) -> tuple[str, str]:
++    """(a one-line command that runs `command` whole, the file that carries its text).
++
++    The text goes to a new file, and the session's shell runs `eval "$(cat FILE; rm -f FILE)"`:
++    the shell reads all of it before running any of it and parses it as it parses a script
++    (heredocs included), in the session's shell, so its cd, variables and jobs persist and its
++    exit status is the last command's. The file is gone before the first command runs. One line
++    is sent, so the shell prints one PS1 (what `_run_normal` waits for) and nothing typed ahead
++    can reach a command's stdin. `builtin` and `command -p` keep a function, alias or PATH the
++    session defined from changing the wrapper."""
++    fd, path = tempfile.mkstemp(prefix="swerex-command-", suffix=".sh")
++    with os.fdopen(fd, "w", encoding="utf-8", errors="surrogateescape") as f:
++        f.write(command)
++    q = shlex.quote(path)
++    return f'builtin eval "$(command -p cat {q}; command -p rm -f {q})"', path
++
++
++def _join_bash_commands(cmds: list[str]) -> str:
++    """The pieces of _split_bash_command on one line: joined with " ; ", except after a piece
++    that ends with the background operator `&`, which already ends it (`a & ; b` is a syntax
++    error; gbench fix, 2026-10-08)."""
++    out = ""
++    for i, cmd in enumerate(cmds):
++        if i:
++            prev = cmds[i - 1].rstrip()
++            background = prev.endswith("&") and not prev.endswith(("&&", "\\&"))
++            out += " " if background else " ; "
++        out += cmd
++    return out
++
++
+ def _split_bash_command(inpt: str) -> list[str]:
+     r"""Split a bash command with linebreaks, escaped newlines, and heredocs into a list of
+     individual commands.
+@@ -74,6 +121,9 @@
+     if not inpt or all(l.strip().startswith("#") for l in inpt.splitlines()):
+         # bashlex can't deal with empty strings or the like :/
+         return []
++    if _holds_heredoc(inpt):
++        # gbench fix: a command that holds a heredoc is one piece (see _HEREDOC_OPERATOR)
++        return [inpt]
+     parsed = bashlex.parse(inpt)
+     cmd_strings = []
+ 
+@@ -287,6 +337,7 @@
+         # Part 2: Execute the command
+ 
+         fallback_terminator = False
++        command_file = None
+         # Running multiple interactive commands by sending them with linebreaks would break things
+         # because we get multiple PS1s back to back. Instead we just join them with ;
+         # However, sometimes bashlex errors and we can't do this. In this case
+@@ -301,18 +352,33 @@
+             action.command += f"\n TMPEXITCODE=$? ; sleep 0.1; echo -n '{self._UNIQUE_STRING}' ; (exit $TMPEXITCODE)"
+             fallback_terminator = True
+         else:
+-            action.command = " ; ".join(individual_commands)
+-        self.shell.sendline(action.command)
+-        if not fallback_terminator:
+-            expect_strings = action.expect + [self._ps1]
+-        else:
+-            expect_strings = [self._UNIQUE_STRING]
++            if _holds_heredoc(action.command):
++                # gbench fix: run it whole (see _HEREDOC_OPERATOR, _as_single_command)
++                try:
++                    action.command, command_file = _as_single_command(action.command)
++                except OSError as e:
++                    # no file can be written: send it as typed, as for a bashlex failure
++                    self.logger.error("Cannot write the command file: %s", e)
++                    action.command += f"\n TMPEXITCODE=$? ; sleep 0.1; echo -n '{self._UNIQUE_STRING}' ; (exit $TMPEXITCODE)"
++                    fallback_terminator = True
++            else:
++                action.command = _join_bash_commands(individual_commands)
+         try:
+-            expect_index = self.shell.expect(expect_strings, timeout=action.timeout)  # type: ignore
+-            matched_expect_string = expect_strings[expect_index]
+-        except pexpect.TIMEOUT as e:
+-            msg = f"timeout after {action.timeout} seconds while running command {action.command!r}"
+-            raise CommandTimeoutError(msg) from e
++            self.shell.sendline(action.command)
++            if not fallback_terminator:
++                expect_strings = action.expect + [self._ps1]
++            else:
++                expect_strings = [self._UNIQUE_STRING]
++            try:
++                expect_index = self.shell.expect(expect_strings, timeout=action.timeout)  # type: ignore
++                matched_expect_string = expect_strings[expect_index]
++            except pexpect.TIMEOUT as e:
++                msg = f"timeout after {action.timeout} seconds while running command {action.command!r}"
++                raise CommandTimeoutError(msg) from e
++        finally:
++            if command_file is not None:
++                # normally the shell removed it before running the command
++                Path(command_file).unlink(missing_ok=True)
+         output: str = _strip_control_chars(self.shell.before)  # type: ignore
+ 
+         # Part 3: Get the exit code
+--- a/swerex/deployment/docker.py
++++ b/swerex/deployment/docker.py
+@@ -1,8 +1,12 @@
++import base64
++import hashlib
+ import logging
+ import shlex
+ import subprocess
+ import time
+ import uuid
++import zlib
++from pathlib import Path
+ from typing import Any
+ 
+ from typing_extensions import Self
+@@ -22,6 +26,52 @@
+ __all__ = ["DockerDeployment", "DockerDeploymentConfig"]
+ 
+ 
++#: gbench heredoc fix (2026-10-08). The runtime each task container runs is installed by
++#: glibc_dockerfile. Upstream installs the latest `swe-rex` from PyPI there, unpinned; gbench
++#: installs exactly these distributions (swe-rex 1.4.0 and the versions pip resolved for it on
++#: 2026-10-08, without resolving again) and then replaces swe-rex 1.4.0's swerex/runtime/local.py
++#: with this package's own, which carries gbench's heredoc fix (_split_bash_command never splits
++#: a command that holds a heredoc; see swerex/runtime/local.py). The client and every task
++#: container thus run the same session code, checked by sha256 on both sides.
++GBENCH_RUNTIME_PINS = (
++    "swe-rex==1.4.0", "annotated-doc==0.0.5", "annotated-types==0.8.0", "anyio==4.15.1",
++    "bashlex==0.18", "certifi==2026.7.22", "charset-normalizer==3.5.2", "click==8.5.0",
++    "fastapi==0.142.4", "h11==0.16.0", "idna==3.20", "markdown-it-py==4.2.0", "mdurl==0.1.2",
++    "opentelemetry-api==1.45.1", "pexpect==4.9.0", "ptyprocess==0.7.0", "pydantic==2.13.5",
++    "pydantic_core==2.46.5", "Pygments==2.21.0", "python-multipart==0.0.32", "requests==2.34.2",
++    "rich==15.0.0", "starlette==1.7.0", "typing-inspection==0.4.4", "typing_extensions==4.16.0",
++    "urllib3==2.8.0", "uvicorn==0.54.0",
++)
++#: sha256 of swerex/runtime/local.py as swe-rex 1.4.0 ships it (PyPI), and with gbench's fix.
++GBENCH_RUNTIME_LOCAL_UPSTREAM_SHA256 = "d56f22b48b02d4df6644cfa04cc16c979b0498ef1c26058b82fb2d4a60bf9ac7"
++GBENCH_RUNTIME_LOCAL_SHA256 = "d67d68966754cc73a3c2ae084fdfe90e7fb274e3ae36da6e619e1c4155372ed4"
++
++
++def _gbench_runtime_dockerfile_steps() -> str:
++    """The glibc_dockerfile steps that install the pinned runtime and gbench's local.py."""
++    source = Path(__file__).resolve().parent.parent / "runtime" / "local.py"
++    data = source.read_bytes()
++    if hashlib.sha256(data).hexdigest() != GBENCH_RUNTIME_LOCAL_SHA256:
++        msg = f"{source} is not gbench's patched swe-rex 1.4.0 runtime (sha256 mismatch)"
++        raise RuntimeError(msg)
++    payload = base64.b64encode(zlib.compress(data, 9)).decode()
++    install = (
++        "/root/python3.11/bin/python3 -c \""
++        "import base64,hashlib,pathlib,sysconfig,zlib;"
++        "p=pathlib.Path(sysconfig.get_paths()['purelib'],'swerex','runtime','local.py');"
++        f"assert hashlib.sha256(p.read_bytes()).hexdigest()=='{GBENCH_RUNTIME_LOCAL_UPSTREAM_SHA256}',p;"
++        f"b=zlib.decompress(base64.b64decode('{payload}'));"
++        f"assert hashlib.sha256(b).hexdigest()=='{GBENCH_RUNTIME_LOCAL_SHA256}';"
++        "p.write_bytes(b);"
++        "[c.unlink() for c in p.parent.glob('__pycache__/local.*.pyc')]\""
++    )
++    return (
++        f"RUN /root/python3.11/bin/pip3 install --no-cache-dir --no-deps {' '.join(GBENCH_RUNTIME_PINS)}"
++        " && /root/python3.11/bin/pip3 check\n\n"
++        f"RUN {install}\n\n"
++    )
++
++
+ def _is_image_available(image: str, runtime: str = "docker") -> bool:
+     try:
+         subprocess.check_call(
+@@ -200,7 +250,8 @@
+             f"RUN {self._config.python_standalone_dir}/python3.11/bin/python3 --version\n"
+             # Install swe-rex using the standalone Python
+             f"RUN rm -f /root/.config/pip/pip.conf\n\n"
+-            f"RUN /root/python3.11/bin/pip3 install --no-cache-dir {PACKAGE_NAME}\n\n"
++            # gbench heredoc fix: the pinned runtime with gbench's local.py, not the latest swe-rex
++            + _gbench_runtime_dockerfile_steps() +
+             f"RUN ln -s /root/python3.11/bin/{REMOTE_EXECUTABLE_NAME} /usr/local/bin/{REMOTE_EXECUTABLE_NAME}\n\n"
+             f"RUN {REMOTE_EXECUTABLE_NAME} --version\n"
+         )

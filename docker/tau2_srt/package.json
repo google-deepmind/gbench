@@ -1,0 +1,9 @@
+{
+  "name": "gbench-tau2-srt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anthropic sandbox-runtime (srt) at the version tau2-bench requires for banking_knowledge's shell tool",
+  "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "0.0.23"
+  }
+}

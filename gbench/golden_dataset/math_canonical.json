@@ -1,0 +1,28 @@
+{
+  "id": "math_canonical",
+  "title": "Canonical Mathematics Evaluation",
+  "category": "math",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Evaluate exact numerical accuracy for multi-step arithmetic. answer_pattern takes the number following the last answer cue, so intermediate working and self-corrections are ignored and a longer number such as 4200 no longer satisfies a golden of 42."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is (15 * 3) - (12 / 4)?"
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "answer_exact",
+    "answer_pattern": "(?:^|answer|result|equals|=)[^0-9+\\-]*([-+]?\\d+(?:\\.\\d+)?)",
+    "canonical_answer": "42"
+  }
+}

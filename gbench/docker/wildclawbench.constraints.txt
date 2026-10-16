@@ -1,0 +1,10 @@
+# pip constraints for the system interpreter of the gbench-wildclawbench image
+# (gbench/docker/wildclawbench.Dockerfile): the resolved set (pip freeze --all) of the image built
+# 2026-09-28 whose runs were checked. pip, setuptools and wheel are Ubuntu's (python3-pip and its
+# dependencies, at the Ubuntu snapshot the Dockerfile pins). The build fails when the interpreter
+# holds anything else.
+pip==24.0
+python-dotenv==1.2.3
+PyYAML==6.0.3
+setuptools==68.1.2
+wheel==0.42.0

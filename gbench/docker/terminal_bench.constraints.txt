@@ -1,0 +1,92 @@
+# Package versions for gbench's terminal_bench harness image (terminal_bench.Dockerfile).
+#
+# Every package of Harbor 0.20.0's dependency closure (no extras), at the version the TB2.1
+# leaderboard's lock resolves it to: harbor-framework/terminal-bench-2-1 at commit
+# 7131e4375048a0e408a8fb404b5f499d726b695b, leaderboard/uv.lock (sha256
+# 5afb146363436b0dbca16aeced12c4f6fff52aaed9d39b64d7d2a1199a908ad7), the closure of its
+# `harbor` entry. Some entries (colorama, for example) only apply on other platforms; pip
+# ignores a constraint it does not need. The image build refuses any installed distribution
+# that is missing here or at another version (terminal_bench_verify_env.py).
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.1
+aiosignal==1.4.0
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.14.1
+attrs==26.1.0
+certifi==2026.6.17
+cffi==2.0.0
+charset-normalizer==3.4.7
+click==8.4.2
+colorama==0.4.6
+cryptography==49.0.0
+deprecation==2.1.0
+dirhash==0.5.0
+distro==1.9.0
+fastapi==0.139.0
+fastuuid==0.14.0
+filelock==3.29.5
+frozenlist==1.8.0
+fsspec==2026.6.0
+h11==0.16.0
+h2==4.3.0
+harbor==0.20.0
+hf-xet==1.5.1
+hpack==4.2.0
+httpcore==1.0.9
+httpx==0.28.1
+huggingface-hub==1.22.0
+hyperframe==6.1.0
+idna==3.18
+importlib-metadata==8.9.0
+jinja2==3.1.6
+jiter==0.16.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+litellm==1.91.0
+markdown-it-py==4.2.0
+markupsafe==3.0.3
+mdurl==0.1.2
+multidict==6.7.1
+openai==2.44.0
+packaging==26.2
+pathspec==1.1.1
+platformdirs==4.10.0
+postgrest==2.31.0
+propcache==0.5.2
+pycparser==3.0
+pydantic==2.13.4
+pydantic-core==2.46.4
+pygments==2.20.0
+pyjwt==2.13.0
+python-dotenv==1.2.2
+pyyaml==6.0.3
+realtime==2.31.0
+referencing==0.37.0
+regex==2026.6.28
+requests==2.34.2
+rich==15.0.0
+rpds-py==2026.6.3
+scantree==0.0.4
+shellingham==1.5.4
+shortuuid==1.0.13
+sniffio==1.3.1
+starlette==1.3.1
+storage3==2.31.0
+strenum==0.4.15
+supabase==2.31.0
+supabase-auth==2.31.0
+supabase-functions==2.31.0
+tenacity==9.1.4
+tiktoken==0.13.0
+tokenizers==0.23.1
+toml==0.10.2
+tqdm==4.68.3
+typer==0.26.8
+typing-extensions==4.16.0
+typing-inspection==0.4.2
+urllib3==2.7.0
+uvicorn==0.50.0
+websockets==15.0.1
+yarl==1.24.2
+zipp==4.1.0

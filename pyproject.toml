@@ -1,0 +1,302 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gbench"
+version = "0.5.0"
+description = "Open model performance benchmarking suite via vLLM"
+authors = [{name = "Luciano Martins", email = "lucianommartins@users.noreply.github.com"}]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["llm", "vllm", "benchmarking", "performance", "gemma"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# The one binding constraint: gbench's models target pydantic v2, so a fresh resolve must not land
+# on v1 (or a future v3). The other cores are left unpinned; uv.lock provides exact reproducibility.
+# Every third-party module the host-side code imports is declared here or in an extra below
+# (tests/test_dependency_policy.py checks it); tqdm is imported directly (progress bars in the
+# runner and several suites), so it is declared rather than left to arrive through datasets.
+dependencies = [
+    "pandas",
+    "pyarrow",
+    "numpy",
+    "huggingface-hub",
+    "datasets",
+    "requests",
+    "pydantic>=2,<3",
+    "Pillow",
+    "aiohttp",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+# The serving stack (vllm / transformers / torch) is intentionally NOT installed by gbench. It is
+# hardware- and CUDA-specific and is often a custom/validated build, so auto-installing it would
+# overwrite a provisioned environment or pull a mismatched CUDA on a fresh one. Provision it yourself
+# (a plain `pip install vllm` on a fresh machine pulls a matching torch/CUDA; or use your validated
+# build). gbench requires it only for LOCAL serving (a run without --remote-endpoint) and hard-errors
+# (require_vllm_engine) at run time if it is missing; runs against --remote-endpoint need neither vllm
+# nor torch. This extra is kept (empty) so `pip install gbench[local]` still resolves.
+local = []
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "mypy",
+    # chat-template rendering in the Gemma 4 template check (tools/template_checks/; a model-artifact check, not a unit test).
+    "jinja2",
+    # bfcl, bfcl_live and bfcl_v4_agentic run bfcl-eval 2026.3.23 in the local image
+    # gbench-bfcl:2026.3.23 (gbench/docker/bfcl.Dockerfile); the package here is only for the unit
+    # tests that run the image's BFCL functions in-process. It pins numpy==1.26.4 and
+    # filelock==3.20.0, so this extra is for a test environment (the Unit Tests workflow's), never
+    # for the environment that serves models: there it would move numpy and filelock (see
+    # tests/README.md).
+    "bfcl-eval==2026.3.23",
+]
+# Extra dependencies required by specific eval suites. Each suite checks for its dependency
+# at run time and hard-errors (infra_required, with an install hint) if it is absent, so this
+# group is optional for runs that do not select those suites. Notes:
+#   - coco_caption  -> pycocoevalcap (CIDEr/BLEU/METEOR; also needs a Java runtime)
+#   - swe_bench_live -> the SWE-bench-Live *fork* of swebench runs in the local image
+#     gbench-swe-bench-live:a145aa87 (gbench/docker/swe_bench_live.Dockerfile; the PyPI 'swebench'
+#     cannot build SWE-bench-Live test specs); also needs Docker.
+#   - aider_polyglot -> Docker plus aider's own benchmark image aider-benchmark:5dc9490b (every language
+#     toolchain in it; docker/aider_polyglot.Dockerfile) and the polyglot-benchmark exercises.
+#   - swe_bench_pro -> Docker plus its local image gbench-swe-bench-pro-v2:harbor-0.22.0-66f92766-sidecar-rt (the 'docker' SDK
+#     only for the maintained-engine route); multi_swe_bench -> Docker + the 'docker' SDK and
+#     the 'multi-swe-bench' package (scored by its own harness).
+#   - hmmt / aime -> Docker plus the local image gbench-matharena:b89f2f0a (MathArena's grader).
+#   - ojbench -> Docker plus the local image gbench-ojbench:5e94480b (ojbench + the DMOJ judge-server,
+#     PyPy3 and g++ in it; docker/ojbench.Dockerfile) and the 7.85 GB testdata - see
+#     docs/evals/ojbench.md.
+#   - spider2 -> pandas/sqlite (base install) + local gold/DB dirs (see docs).
+#   - Harnesses whose own pins conflict with this environment run in local images and are not
+#     installed here: tau2 / tau3 (tau2-bench, gbench-tau2:b7ea9074), terminal_bench (Harbor
+#     0.20.0, gbench-terminal-bench:harbor-0.20.0), bfcl / bfcl_live / bfcl_v4_agentic (bfcl-eval,
+#     gbench-bfcl:2026.3.23), cyberseceval (Meta's Insecure Code Detector with semgrep 1.51.0,
+#     gbench-cyberseceval:114d02388213-semgrep-1.51.0), and the ones named above. Each suite's
+#     doc gives the build command.
+#   - Not declared on purpose: the serving stack (vllm / torch / transformers, see `local`) and
+#     sentence-transformers (t_eval, api_bank), which pulls torch; those suites check for it at
+#     run time.
+evals = [
+    # LLM-judge client (google.genai) - runtime dep for every GEMINI_API_KEY-judged suite
+    # (simpleqa, frames, browsecomp, healthbench, gdpval, putnam, ...); the judge cascade in
+    # base.py imports it. Previously undeclared, so judged suites had no install path.
+    "google-genai",
+    # MRCR length bins use OpenAI's o200k_base encoding, as upstream defines them. Its BPE
+    # file downloads on first use; set TIKTOKEN_CACHE_DIR to reuse it offline.
+    "tiktoken",
+    # mmlu_pro -> openai AsyncOpenAI streaming + tiktoken cl100k_base, as TIGER-Lab
+    # evaluate_from_apiX.py (2.31 or later: an older client sends an empty 'Bearer ' header for the
+    # empty key, which the endpoint's HTTP stack rejects).
+    "openai>=2.31",
+    "pycocoevalcap",
+    # bundled_detection -> pycocotools COCOeval (bbox), the release its provenance records (also a
+    # dependency of pycocoevalcap, declared here because the suite imports it directly).
+    "pycocotools==2.0.11",
+    # i18n_translate -> sacrebleu's "wmt19" test-set definition and sacreBLEU BLEU / chrF scoring
+    # (the suite downloads data.statmt.org/wmt19/translation-task/test.tgz itself); the suite
+    # hard-errors (infra_required) without it.
+    "sacrebleu==2.6.0",
+    # The main env keeps swebench 4.1 (PINNED >=4.1,<5; v4's harness layout). copilot_bench_swe
+    # and swe_bench_multilingual score with swebench 5.0.2 in the local image gbench-swebench-v5:5.0.2
+    # (their current datasets carry the v5 columns); swe_bench_live uses the fork image and
+    # swe_bench_pro uses Harbor.
+    "swebench>=4.1,<5",
+    "pytest",
+    "docker",
+    # multi_swe_bench scores with multi_swe_bench.harness.run_evaluation. 1.1.2 is the release built
+    # from harness commit 24f493f8 (the commit its provenance records; its harness/ and utils/
+    # modules are byte-identical to that commit).
+    "multi-swe-bench==1.1.2",
+    # mini-swe-agent (imported as `minisweagent`): the in-env 1.x serves swe_bench_pro_agentic's agentic
+    # rollouts (it hard-errors (infra_required) if it is absent); swe_bench_live and multi_swe_bench
+    # run their reference scaffolds (SWE-agent-for-eval, MSWE-agent) in their own local images.
+    # PINNED >=1.15,<2: it targets v1
+    # (minisweagent.config extra/swebench.yaml + minisweagent.run.extra.swebench.get_sb_environment;
+    # the bundled config is identical from 1.15.0 through 1.17.5, validated with 1.17.5).
+    # copilot_bench_swe and swe_bench_multilingual run mini-swe-agent 2.4.2 / 2.4.6 in the local
+    # image gbench-mini-swe-agent-v2:2.4.2-2.4.6; swe_bench_pro V2 installs 2.4.6 inside each Harbor sandbox.
+    "mini-swe-agent>=1.15,<2",
+    # litellm -> mini-swe-agent's model client; the agentic SWE runner checks for it before a run.
+    "litellm",
+    # scicode -> reads its test_data.h5 with a VENDORED loader and runs test cases that import
+    # SciCode's scicode.compare.cmp (vendored in third_party/_scicode_vendor/; it imports
+    # numpy, scipy.sparse and sympy); the scicode package's dep tree conflicts with gbench's
+    # pins, so only these lightweight libs are needed.
+    "h5py",
+    "scipy",
+    "sympy",
+    # math_equiv helper (math_verify; no suite grades with it now: hmmt and aime use MathArena's
+    # own grader in the gbench-matharena:b89f2f0a image) - kept for its tests.
+    "math-verify",
+    # hmmt / aime read MathArena's vendored competition configs; cimemories reads the release's
+    # eval/prompts.yaml.
+    "pyyaml",
+    # omnidocbench interim per-page pass flag (required; the suite hard-errors without it).
+    "rapidfuzz",
+    # gorilla_apibench -> APIBench's ast_eval scripts parse replies with tree-sitter. 0.21.3 is the
+    # runtime bfcl-eval pins; tree-sitter-python 0.21.0 is the matching grammar release.
+    "tree-sitter==0.21.3",
+    "tree-sitter-python==0.21.0",
+    # nestful -> scorer.py's metrics are sklearn's (MultiLabelBinarizer + macro F1).
+    "scikit-learn",
+    # gaia attachment renderers (xlsx, pdf, legacy xls); openpyxl and pymupdf are also used by
+    # gdpval, which also needs python-pptx for its .pptx deliverables and inputs, python-docx to
+    # render .docx files and soundfile to read audio input durations.
+    "openpyxl",
+    "pymupdf",
+    "xlrd",
+    "python-pptx",
+    "python-docx",
+    "soundfile",
+    # json_repair -> used on the host by gbench/docker/mcp_bench_cascade_judge.py (which
+    # tests/test_mcp_bench.py imports). beam_128k does not need it: it uses the vendored
+    # json_repair 0.44.1 that upstream pins (gbench/third_party/_json_repair_vendor).
+    "json_repair",
+    # ifeval -> the vendored google-research checkers need langdetect (response language /
+    # English case) and nltk (+ `python -m nltk.downloader punkt punkt_tab`); the suite
+    # hard-errors without them. causalbench -> nltk word_tokenize (Corr2Cause rel_normalize),
+    # same punkt data.
+    "langdetect",
+    "nltk",
+    # mcp_atlas -> jsonschema, the search-engine tools argument check (the environment MCP server
+    # validates with it)
+    "jsonschema",
+    # hmmt / aime -> the vendored MathArena grader (third_party/matharena_src) imports
+    # loguru; the suites grade in the gbench-matharena:b89f2f0a image, and the unit tests import the
+    # grader on the host.
+    "loguru",
+    # t_eval -> the vendored T-Eval planning and reason/retrieve/understand evaluators import
+    # networkx (sentence-transformers, which pulls torch, is installed separately; the suite
+    # checks both at run time).
+    "networkx",
+    # hmmt / aime -> the vendored MathArena parser imports regex (with loguru above).
+    "regex",
+    # i18n_translate -> imports portalocker directly for its cache lock (the library sacreBLEU's
+    # downloader locks with).
+    "portalocker",
+    # math_equiv -> imports latex2sympy2_extended directly (math-verify's LaTeX parser; math-verify
+    # pins the release).
+    "latex2sympy2_extended",
+    # scicode -> SciCode's test problems import numpy, scipy, sympy and, in one problem,
+    # mpl_toolkits (matplotlib); the scored code runs with this interpreter, so a missing library
+    # would fail that problem's tests for a reason that is not the model's.
+    "matplotlib",
+    # agent_dojo -> the benchmark itself runs in-process (agentdojo.benchmark); the suite records
+    # the release it ran.
+    "agentdojo==0.1.35",
+]
+
+# Used only by the legacy in-process per-modality helpers in
+# gbench/third_party/eval_suites/omnidoc_metrics.py (TEDS for tables + Formula Edit Distance), which
+# tests exercise (the Unit Tests workflow installs this extra with dev and evals). The
+# omnidocbench suite itself scores in the pinned evaluator image (see docs/evals/omnidocbench.md)
+# and does not need this extra.
+omnidocbench = [
+    "apted",
+    "lxml",
+    "Distance",
+    "pylatexenc",
+    "rapidfuzz",
+]
+
+[project.scripts]
+gbench = "gbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gbench*"]
+
+[tool.setuptools.package-data]
+# The Golden Set is an eval that ships with the tool, so a consumer repo
+# can point --golden-only at its own endpoint. Without this the JSON
+# cases and media assets are left out of the wheel and the runner finds
+# an empty dataset directory.
+gbench = [
+    # --parallel-suites / --smoke: the measured per-suite wall times the pool orders by.
+    "pool_durations.json",
+    "golden_dataset/*.json",
+    "golden_dataset/assets/*",
+    # Third-party-derived benchmark evaluation suites and vendored assets.
+    "third_party/eval_suites/LICENSE",
+    "third_party/eval_suites/*.py",
+    "third_party/eval_suites/_ifeval_vendor/LICENSE",
+    "third_party/eval_suites/_ifeval_vendor/*.py",
+    "third_party/eval_suites/_swelancer_adapter/*.py",
+    # SciCode's 3 supplied sub-steps (context for later steps), vendored Apache-2.0.
+    "third_party/eval_suites/scicode_data/LICENSE",
+    "third_party/eval_suites/scicode_data/*.txt",
+    "third_party/eval_suites/scicode_data/ATTRIBUTION.md",
+    # MathArena's grader, configs and license, vendored MIT (not a Python package: the hmmt /
+    # aime suites blob-check these files and stream them into the gbench-matharena:b89f2f0a image).
+    "third_party/matharena_src/LICENSE",
+    "third_party/matharena_src/matharena/*.py",
+    "third_party/matharena_src/matharena/tools/*.py",
+    "third_party/matharena_src/configs/competitions/*/*.yaml",
+    # ComplexFuncBench's tool schemas and exact-match values, read at run time.
+    "third_party/eval_suites/_complexfuncbench_data/LICENSE",
+    "third_party/eval_suites/_complexfuncbench_data/*.json",
+    # Licenses of the vendored third-party packages.
+    "third_party/_acebench_vendor/LICENSE",
+    "third_party/_json_repair_vendor/LICENSE",
+    "third_party/_scicode_vendor/LICENSE",
+    "third_party/_teval_vendor/LICENSE",
+]
+
+[tool.pytest.ini_options]
+# Unit tests only. The Golden Set eval needs a live model and is run with
+# `gbench --golden-only`, never by pytest. See tests/README.md.
+testpaths = ["tests"]
+# Async tests (e.g. the MCP-Atlas search-cascade tests) use `@pytest.mark.asyncio`;
+# auto mode runs any async test without per-test decoration. Requires pytest-asyncio
+# (declared in the `dev` extra - pip install -e .[dev]).
+asyncio_mode = "auto"
+markers = [
+    "slow: tests that download large models or are otherwise slow (deselect with -m 'not slow')",
+]
+
+[tool.ruff]
+line-length = 79
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "W",  # pycodestyle warnings
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

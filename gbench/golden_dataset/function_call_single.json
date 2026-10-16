@@ -1,0 +1,55 @@
+{
+  "id": "function_call_single",
+  "title": "Function Call Single Tool",
+  "category": "tool_use",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Single function call execution ground truth verification. The tools schema below is sent on the request and the check reads message.tool_calls off the response, so naming the function in prose no longer counts. tool_choice is auto on purpose: deciding to call the tool is the capability under test. Expected arguments must be present and equal after case and whitespace normalisation, extra arguments such as a unit are allowed."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Fetch the current weather for Zurich, Switzerland."
+      }
+    ]
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get the current weather for a location.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "City and country, for example 'Zurich, Switzerland'."
+            }
+          },
+          "required": ["location"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "golden_truth": {
+    "match_type": "tool_call",
+    "expected_tool_calls": [
+      {
+        "name": "get_weather",
+        "arguments": {
+          "location": "Zurich, Switzerland"
+        }
+      }
+    ],
+    "canonical_answer": "{\"name\": \"get_weather\", \"arguments\": {\"location\": \"Zurich, Switzerland\"}}"
+  }
+}

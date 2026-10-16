@@ -1,0 +1,32 @@
+{
+  "id": "code_canonical",
+  "title": "Canonical Code Generation",
+  "category": "code_generation",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Python palindrome function code generation ground truth. answer_pattern extracts the return statement from inside the is_palindrome body, skipping an optional docstring, so surrounding prose and example usage cannot satisfy the check. reference_implementation is the full expected function; canonical_answer is only the span the pattern extracts.",
+    "reference_implementation": "def is_palindrome(s: str) -> bool:\n    return s == s[::-1]"
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Write a Python function named `is_palindrome(s: str) -> bool` that returns True if the string is a palindrome."
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "python_exec",
+    "unit_tests": [
+      "assert is_palindrome('racecar') == True",
+      "assert is_palindrome('hello') == False",
+      "assert is_palindrome('noon') == True"
+    ]
+  }
+}

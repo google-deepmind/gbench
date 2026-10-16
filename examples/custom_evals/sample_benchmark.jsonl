@@ -1,0 +1,5 @@
+{"prompt": "What is the speed of light in vacuum (in m/s)?", "gold": "299792458", "eval_type": "contains", "category": "Physics"}
+{"prompt": "Who wrote the play Hamlet?", "gold": "Shakespeare", "eval_type": "contains", "category": "Literature"}
+{"prompt": "What is the chemical symbol for Gold?", "gold": "Au", "eval_type": "contains", "category": "Chemistry"}
+{"messages": [{"role": "system", "content": "You are a math tutor."}, {"role": "user", "content": "Calculate 15 * 14."}], "gold": "210", "eval_type": "numeric", "category": "Math"}
+{"prompt": "Which planet is known as the Red Planet? (A) Venus (B) Mars (C) Jupiter (D) Saturn", "gold": "B", "eval_type": "multiple_choice", "category": "Astronomy"}

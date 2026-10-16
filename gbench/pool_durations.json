@@ -1,0 +1,487 @@
+{
+ "description": "Wall time of each suite in earlier --eval-limit 5 runs against gemma-4-26B-A4B-it (--thinking, --max-output-tokens 65536, one vLLM server), used only to order the --parallel-suites pool longest first (a suite without an entry counts as the median). Per suite: the longest duration_s over results/smoke-evalcloud/10-09-175120 (serial) and results/smoke-lane{1,2,3}/10-10-193132 (3 lanes at once), whatever the run's status (a run that errored or was cut short after N s still ran N s, so the longest is never an underestimate of what was seen). A suite with no clean run there (status success, not partial, no trial errors) also takes the earlier results/ws10_* runs into account, scaled to 5 samples, when that is longer; such entries carry `estimate` with the basis (2026-10-11 review: terminal_bench's only --eval-limit 5 entry was 326 s from a run whose Harbor trials were cancelled, against 9638 s for 3 samples in a complete run). Error runs shorter than 30 s are left out (they say nothing about the suite's time). status is the status of the run the entry came from.",
+ "eval_limit": 5,
+ "updated": "2026-10-11",
+ "suites": {
+  "aa_lcr": {
+   "duration_s": 1118.0,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "acebench": {
+   "duration_s": 21.7,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "agent_dojo": {
+   "duration_s": 43.8,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "aider_polyglot": {
+   "duration_s": 453.3,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "aime": {
+   "duration_s": 1218.2,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "amc_aime": {
+   "duration_s": 267.7,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "api_bank": {
+   "duration_s": 12.2,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "arc_agi": {
+   "duration_s": 287.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "beam_128k": {
+   "duration_s": 1511.7,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "bfcl": {
+   "duration_s": 389.9,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "bfcl_live": {
+   "duration_s": 18.1,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "bfcl_v3_live": {
+   "duration_s": 9.8,
+   "estimate": "no clean --eval-limit 5 run; 6 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f2/09-12-004415",
+   "status": "success"
+  },
+  "bfcl_v4_agentic": {
+   "duration_s": 1584.4,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "bigcodebench": {
+   "duration_s": 57.6,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "browsecomp": {
+   "duration_s": 393.3,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "bundled_detection": {
+   "duration_s": 15.7,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "causalbench": {
+   "duration_s": 95.7,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "chartqa": {
+   "duration_s": 12.6,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "charxiv": {
+   "duration_s": 53.5,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "cimemories": {
+   "duration_s": 151.3,
+   "estimate": "that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "smoke-lane3/10-10-193132",
+   "status": "completed_with_errors"
+  },
+  "coco_caption": {
+   "duration_s": 22.7,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "codeforces": {
+   "duration_s": 216.5,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "complexfuncbench": {
+   "duration_s": 57.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "copilot_bench_swe": {
+   "duration_s": 272.0,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "cruxeval": {
+   "duration_s": 226.6,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "culer": {
+   "duration_s": 287.1,
+   "estimate": "no clean --eval-limit 5 run; 172 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f2/09-12-004415",
+   "status": "success"
+  },
+  "cybergym": {
+   "duration_s": 94.6,
+   "estimate": "no clean --eval-limit 5 run; 57 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_fast/09-11-132055",
+   "status": "success"
+  },
+  "cyberseceval": {
+   "duration_s": 28.6,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "deepsearch_qa": {
+   "duration_s": 727.8,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "docvqa": {
+   "duration_s": 5.4,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "frames": {
+   "duration_s": 355.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "gaia": {
+   "duration_s": 265.8,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "gaia2": {
+   "duration_s": 3278.0,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "gdpval": {
+   "duration_s": 201.3,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "gorilla_apibench": {
+   "duration_s": 44.0,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "gpqa": {
+   "duration_s": 292.1,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "gpqa_diamond": {
+   "duration_s": 157.2,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "gsm8k": {
+   "duration_s": 16.0,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "healthbench": {
+   "duration_s": 34.8,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "hmmt": {
+   "duration_s": 1275.4,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "humanitys_last_exam": {
+   "duration_s": 237.2,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "i18n_translate": {
+   "duration_s": 18.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "ifeval": {
+   "duration_s": 10.4,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "imo_answer_bench": {
+   "duration_s": 951.1,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "infographicvqa": {
+   "duration_s": 4.8,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "lab_bench": {
+   "duration_s": 1416.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "lcb": {
+   "duration_s": 1445.7,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "livebench": {
+   "duration_s": 401.2,
+   "estimate": "that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "completed_with_errors"
+  },
+  "lmsys_noncoding_hard": {
+   "duration_s": 155.7,
+   "estimate": "no clean --eval-limit 5 run; 93 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f3/09-12-004415",
+   "status": "success"
+  },
+  "loft_scifact": {
+   "duration_s": 87.4,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "loft_x_arxiv": {
+   "duration_s": 1283.8,
+   "estimate": "no clean --eval-limit 5 run; 770 s for 3 samples in an earlier run, scaled to 5; that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "ws10_rerun_f4/09-12-004415",
+   "status": "completed_with_errors"
+  },
+  "longbench_v2_code": {
+   "duration_s": 800.9,
+   "estimate": "that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "smoke-lane3/10-10-193132",
+   "status": "completed_with_errors"
+  },
+  "mcp_atlas": {
+   "duration_s": 201.0,
+   "estimate": "no clean --eval-limit 5 run; 121 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f1/09-12-004415",
+   "status": "success"
+  },
+  "mcp_bench": {
+   "duration_s": 1128.4,
+   "estimate": "no clean --eval-limit 5 run; 1128 s for 0 samples in an earlier run (sample count unknown, not scaled)",
+   "source": "ws10_heavy_h03_skills_mcp/09-11-132111",
+   "status": "success"
+  },
+  "medxpertqa": {
+   "duration_s": 59.2,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "mmlu": {
+   "duration_s": 11.4,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "mmlu_pro": {
+   "duration_s": 149.7,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "mmlu_redux": {
+   "duration_s": 54.0,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "mmmu_pro": {
+   "duration_s": 45.7,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "mrcr": {
+   "duration_s": 1977.9,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "multi_swe_bench": {
+   "duration_s": 2979.8,
+   "estimate": "that run was error: a lower bound on the suite's time",
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "error"
+  },
+  "multilingual_mmlu": {
+   "duration_s": 59.4,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "multipl_e": {
+   "duration_s": 562.9,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "nestful": {
+   "duration_s": 8.0,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "nexus_function_calling": {
+   "duration_s": 10.9,
+   "estimate": "no clean --eval-limit 5 run; 7 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f3/09-12-004415",
+   "status": "success"
+  },
+  "nexusraven_api_eval": {
+   "duration_s": 5.4,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "ojbench": {
+   "duration_s": 1157.5,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "omnidocbench": {
+   "duration_s": 96.9,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "putnam": {
+   "duration_s": 144.3,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "putnam_formal": {
+   "duration_s": 144.5,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "ruler": {
+   "duration_s": 702.6,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "scicode": {
+   "duration_s": 1003.8,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "screenspot": {
+   "duration_s": 5.1,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "screenspot_pointing": {
+   "duration_s": 9.1,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "seal_tools": {
+   "duration_s": 10.6,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "semantic_keypoint": {
+   "duration_s": 12.9,
+   "estimate": "no clean --eval-limit 5 run; 8 s for 3 samples in an earlier run, scaled to 5",
+   "source": "ws10_rerun_f2/09-12-004415",
+   "status": "success"
+  },
+  "simpleqa": {
+   "duration_s": 15.1,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "skillsbench": {
+   "duration_s": 4960.6,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "spider2": {
+   "duration_s": 62.9,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "swe_bench_live": {
+   "duration_s": 16206.0,
+   "estimate": "that run was error: a lower bound on the suite's time",
+   "source": "smoke-lane1/10-10-193132",
+   "status": "error"
+  },
+  "swe_bench_multilingual": {
+   "duration_s": 1126.5,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "swe_bench_pro": {
+   "duration_s": 2858.2,
+   "estimate": "that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "completed_with_errors"
+  },
+  "swe_lancer": {
+   "duration_s": 1338.7,
+   "estimate": "no clean --eval-limit 5 run; 803 s for 3 samples in an earlier run, scaled to 5; that run was error: a lower bound on the suite's time",
+   "source": "ws10_rerun_h_oj_putnam_lancer/09-12-004415",
+   "status": "error"
+  },
+  "t_eval": {
+   "duration_s": 66.3,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  },
+  "tau2": {
+   "duration_s": 379.3,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "tau3": {
+   "duration_s": 976.0,
+   "source": "smoke-lane3/10-10-193132",
+   "status": "success"
+  },
+  "terminal_bench": {
+   "duration_s": 16062.7,
+   "estimate": "no clean --eval-limit 5 run; 9638 s for 3 samples in an earlier run, scaled to 5; that run was success, partial, 2 trial errors: a lower bound on the suite's time",
+   "source": "ws10_rerun_h_terminal/09-12-004415",
+   "status": "success"
+  },
+  "textvqa": {
+   "duration_s": 22.7,
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "success"
+  },
+  "toolbench": {
+   "duration_s": 792.5,
+   "estimate": "that run was failed: a lower bound on the suite's time",
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "failed"
+  },
+  "wildbench": {
+   "duration_s": 30.8,
+   "estimate": "that run was completed_with_errors: a lower bound on the suite's time",
+   "source": "smoke-evalcloud/10-09-175120",
+   "status": "completed_with_errors"
+  },
+  "wildclawbench": {
+   "duration_s": 1029.4,
+   "estimate": "no clean --eval-limit 5 run; 12353 s for 60 samples in an earlier run, scaled to 5",
+   "source": "ws10_heavy_h04_wildclaw/09-11-132113",
+   "status": "success"
+  },
+  "wmdp": {
+   "duration_s": 3.6,
+   "source": "smoke-lane2/10-10-193132",
+   "status": "success"
+  }
+ }
+}

@@ -1,0 +1,68 @@
+gbench fix for SWE-agent-for-eval's own code, applied by gbench/docker/sweagent_for_eval.Dockerfile
+to the fork's checkout (/opt/SWE-agent-for-eval). Paths are relative to that checkout.
+
+sweagent/agent/agents.py: when the model submits, the agent's PatchFormatter reads every file the
+model's patch modified, from the task container, to record the edited regions (in the default
+config they go into the trajectory's info as edited_files30/50/70; the submitted patch is produced
+separately by git diff and is not read here). Two fixes to that read, neither of which touches the
+patch:
+
+1. The read decoded strictly as UTF-8, so a modified file holding one byte that is not UTF-8 (a
+   Latin-1 translation file, a binary fixture) raised UnicodeDecodeError in the runtime,
+   SwerexException in the agent, and the instance was lost with no patch: on 2026-10-08
+   privacyidea__privacyidea-4251 (byte 0x81). The read now uses errors="replace", so such a byte
+   shows as U+FFFD in that record.
+
+2. A path the patch modifies need not be a regular file: a patch that moves a git submodule's
+   commit lists the submodule's directory as a modified path, and reading it raised
+   IsADirectoryError, and the instance was lost the same way: on 2026-10-09 duckdb__ducklake-1224
+   (/testbed/duckdb). Before reading, the agent now asks the task container (a subprocess outside
+   the model's shell session: sh -c 'test -e "$1" && ! test -f "$1"') whether the path exists and
+   is not a regular file (a directory, a FIFO, a device); if so the path is not read and its entry
+   in that record is empty. A missing path is still read, and fails, as upstream.
+
+--- a/sweagent/agent/agents.py
++++ b/sweagent/agent/agents.py
+@@ -14,6 +14,7 @@
+ from pydantic import BaseModel, ConfigDict, Field, model_validator
+ from simple_parsing.helpers.fields import field
+ from swerex.exceptions import BashIncorrectSyntaxError, CommandTimeoutError, SwerexException
++from swerex.runtime.abstract import Command as RexCommand
+ from tenacity import RetryError
+ from typing_extensions import Self
+ from unidiff import UnidiffParseError
+@@ -930,6 +931,23 @@
+     def _get_edited_files_with_context(self, patch: str) -> dict[str, str]:
+         """Get the edited files with context from the patch"""
+         assert self._env is not None
++
++        def read_edited_file(path: str) -> str:
++            full_path = str(PurePosixPath("/") / self._env.repo.repo_name / path)  # type: ignore[attr-defined]
++            # gbench: a path that exists but is not a regular file (a git submodule's directory, a
++            # FIFO, a device) has no text to record; it is not read and its entry in the record is empty.
++            not_regular = asyncio.run(
++                self._env.deployment.runtime.execute(  # type: ignore[attr-defined]
++                    RexCommand(
++                        command=["sh", "-c", 'test -e "$1" && ! test -f "$1"', "sh", full_path], timeout=60
++                    )
++                )
++            )
++            if not_regular.exit_code == 0:
++                self.logger.info(f"Not reading {full_path} for the edited-files record: not a regular file")
++                return ""
++            return self._env.read_file(full_path, errors="replace")  # type: ignore[attr-defined]
++
+         try:
+             if self._env.repo is None:
+                 pf = None
+@@ -937,9 +955,7 @@
+                 pf = (
+                     PatchFormatter(
+                         patch,
+-                        read_method=lambda path: self._env.read_file(  # type: ignore[attr-defined]
+-                            PurePosixPath("/") / self._env.repo.repo_name / path  # type: ignore[attr-defined]
+-                        ),
++                        read_method=read_edited_file,
+                     )
+                     if patch
+                     else None

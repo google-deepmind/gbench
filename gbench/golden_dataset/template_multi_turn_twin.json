@@ -1,0 +1,33 @@
+{
+  "id": "template_multi_turn_twin",
+  "title": "Chat Template Multi Turn Twin",
+  "category": "chat_template",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.0",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      },
+      {
+        "version": "1.1",
+        "reason": "Same leak guard change as its pair: the fixed Gemma delimiter list is replaced by the served model's own chat-template tokens, read from its tokenizer at run time (forbid_chat_template_tokens), so the pair keeps asserting the same thing on both sides."
+      }
+    ],
+    "description": "Control half of a pair with template_multi_turn. The same two warehouses in the same order and the same question, flattened into one user turn with no assistant history. A single user turn is the smallest surface a chat template has, so this case cannot fail for a template reason without every other Golden Set case failing alongside it, at which point the category row is not the signal you are reading anyway. Its only job is to answer the question its twin raises: could the model resolve 'second warehouse' at all? If yes and the twin case still failed, the fault is in how the multi-turn history was serialized. Note this is not empirical proof of template insensitivity, which would need a deliberately broken template to demonstrate. It is a structural argument, and it holds only as long as this case stays a single user turn. Do not add tools, history or media to it."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "My first warehouse is in Osaka and it holds 512 pallets. My second warehouse is in Lima and it holds 128 pallets. How many pallets does my second warehouse hold? Reply with just the number."
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": ["128"],
+    "forbid_chat_template_tokens": true,
+    "canonical_answer": "128"
+  }
+}

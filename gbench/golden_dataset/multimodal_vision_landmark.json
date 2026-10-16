@@ -1,0 +1,50 @@
+{
+  "id": "multimodal_vision_landmark",
+  "title": "Multimodal Vision Landmark & Painting Identification",
+  "category": "multimodal_vision",
+  "meta": {
+    "version": "1.1",
+    "changelog": [
+      {
+        "version": "1.1",
+        "reason": "Baseline entry recorded when the scaffold versioning contract was adopted. Changes before this point are in git history rather than here."
+      }
+    ],
+    "description": "Vision image understanding for classic artwork and landmark identification. expected_not_contains makes the check two-sided. Both 'Starry Night' and 'Gogh' appear in a sentence that denies the attribution, so the denial and the common distractor painters have to be excluded explicitly."
+  },
+  "conversation": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What famous painting is shown in this image and who painted it?",
+        "media": [
+          {
+            "type": "image",
+            "mime_type": "image/png",
+            "url": "assets/starry_night.png"
+          }
+        ]
+      }
+    ]
+  },
+  "golden_truth": {
+    "match_type": "contains_all",
+    "expected_outputs": [
+      "Starry Night",
+      "Gogh"
+    ],
+    "expected_not_contains": [
+      "not Starry Night",
+      "was not painted by",
+      "Monet",
+      "Picasso",
+      "Dali",
+      "Munch",
+      "Cezanne",
+      "Mona Lisa",
+      "The Scream",
+      "Water Lilies"
+    ],
+    "canonical_answer": "The image shows The Starry Night by Vincent van Gogh."
+  }
+}

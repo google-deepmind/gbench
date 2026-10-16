@@ -1,0 +1,74 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Policy gate: a change to an eval's scoring code must come with a recorded decision.
+#
+# gbench/runners/eval_suites/canonical_sync.py records a code fingerprint (CODE_FP) for every
+# suite and every shared module a suite imports (SHARED_SYNC). Its --check-bump mode reads the
+# module at the base commit and in the working tree and fails when a fingerprint moved without
+# either a moved anchor (the entry's synced date, revision, checksum or dataset pin: the
+# scaffold_id then moves too) or a VERDICT_PRESERVING declaration of exactly the new
+# fingerprint with its reason. It also fails when a recorded fingerprint no longer matches the
+# code, or when an entry's anchors moved after the last refresh (FP_ANCHORS digest stale); run
+# `python gbench/runners/eval_suites/canonical_sync.py --refresh-code-fp` after the decision.
+# --refresh-code-fp itself refuses to record a moved fingerprint that has neither a moved anchor
+# nor a VERDICT_PRESERVING declaration. The rule is unit tested in tests/test_canonical_sync.py under test.yml; this
+# workflow only supplies the diff.
+#
+# Separate from test.yml on purpose, like golden-changelog.yml: it is a rule about provenance,
+# not a test of the code, and should read as its own named check. It installs nothing: the
+# module is stdlib-only.
+
+name: Canonical Sync Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  # Not restricted with a `paths:` filter: a required check that is skipped stays pending
+  # forever under branch protection, so it always runs.
+  canonical-sync-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      with:
+        # --check-bump reads the base side with `git show`, so the base commit must be in the
+        # local object store.
+        fetch-depth: 0
+
+    - name: Check code fingerprints and recorded decisions (pull request)
+      if: github.event_name == 'pull_request'
+      run: |
+        python3 gbench/runners/eval_suites/canonical_sync.py --check-bump \
+          --base "${{ github.event.pull_request.base.sha }}"
+
+    # On a push there is no PR base: compare against the commit the branch was at before. That
+    # sha is all zeros for a branch's first push and after some force pushes, in which case the
+    # single pushed commit is compared instead.
+    - name: Check code fingerprints and recorded decisions (push)
+      if: github.event_name == 'push'
+      run: |
+        BASE="${{ github.event.before }}"
+        if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+           || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+          echo "No usable base commit ($BASE), falling back to HEAD^."
+          BASE="HEAD^"
+        fi
+        python3 gbench/runners/eval_suites/canonical_sync.py --check-bump --base "$BASE"

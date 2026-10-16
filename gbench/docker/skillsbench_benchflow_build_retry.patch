@@ -1,0 +1,44 @@
+gbench fix for BenchFlow 0.6.3's docker sandbox, applied by gbench/docker/skillsbench.Dockerfile
+to the orchestrator's environment (/app/skillsbench/.venv/lib/python3.12/site-packages). Paths are
+relative to that directory.
+
+benchflow/sandbox/docker.py: BenchFlow retries a task environment's `docker compose build` twice
+(2 s, then 5 s later) when the failure matches _DOCKER_BUILD_RETRYABLE_ERRORS, its list of
+transient build failures (apt signature errors, no space left, read/connection timeouts). The
+list did not include a failure of the Docker daemon's containerd image store while it commits a
+layer:
+
+  failed to export layer: CreateDiff: mount callback failed on ...: failed to commit: rename
+  /var/lib/containerd/io.containerd.content.v1.content/ingest/<ref>/data
+  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/<digest>: no such file or
+  directory
+
+On 2026-10-13 (gbench validation run pool-10-13-003542) the task lab-unit-harmonization failed
+this way in step 4/7 (`pip install`, whose output ends "Successfully installed ..."), after 78 s
+and before the agent started (0 tool calls, 0 tokens, empty trajectory); BenchFlow classified the
+error "other", ran no verifier and wrote no reward. The same Dockerfile built and was scored on
+2026-10-10 and 2026-10-11. The patch adds that failure to the list, so the build is retried like
+the other transient failures; any other build failure still fails the trial at once, and a third
+failure of this kind still fails it. The launcher records each retry (sandbox_build_retries).
+
+--- a/benchflow/sandbox/docker.py
++++ b/benchflow/sandbox/docker.py
+@@ -51,6 +51,18 @@
+     re.compile(r"readtimeouterror", re.IGNORECASE),
+     re.compile(r"read timed out", re.IGNORECASE),
+     re.compile(r"connection (?:timed out|reset by peer)", re.IGNORECASE),
++    # gbench (skillsbench_benchflow_build_retry.patch): the Docker daemon's containerd image
++    # store lost a layer while committing it ("failed to export layer ... failed to commit:
++    # rename .../ingest/<ref>/data .../blobs/sha256/<digest>: no such file or directory"): a
++    # failure of the daemon's content store after the step's command had finished (2026-10-13
++    # gbench run, lab-unit-harmonization, step 4/7 `pip install`; the same Dockerfile built on
++    # 2026-10-10 and 2026-10-11). The agent has not started when the build runs.
++    re.compile(
++        r"failed to export layer\b.*?failed to commit: rename \S*"
++        r"io\.containerd\.content\.v1\.content/ingest/\S+ \S*"
++        r"io\.containerd\.content\.v1\.content/blobs/\S+: no such file or directory",
++        re.IGNORECASE | re.DOTALL,
++    ),
+ )
+ 
+ # Compose-up network-race retry config lives in _compose so the host docker
