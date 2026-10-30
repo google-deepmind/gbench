@@ -71,7 +71,7 @@ It works with any OpenAI-compatible `/v1` server through `--remote-endpoint` (va
 ## Installation
 
 ```bash
-git clone https://github.com/google-gemma/gbench.git
+git clone https://github.com/google-deepmind/gbench.git
 cd gbench
 python3 -m venv venv && source venv/bin/activate
 

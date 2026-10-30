@@ -1240,8 +1240,11 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_header("Connection", "close")
             self.end_headers()
             event_stream = "text/event-stream" in str(upstream.headers.get("Content-Type") or "")
-            scan = ReplyScan(streamed or event_stream) if chat else None
+            is_stream = bool(streamed or event_stream)
+            scan = ReplyScan(is_stream) if chat else None
             read = getattr(upstream, "read1", None) or upstream.read
+            tail = b""
+            client_gone = False
             while True:
                 try:
                     chunk = read(65536)
@@ -1258,18 +1261,31 @@ class _Handler(BaseHTTPRequestHandler):
                     break
                 if scan is not None:
                     scan.feed(chunk)
-                try:
-                    self.wfile.write(chunk)
-                    self.wfile.flush()
-                except (BrokenPipeError, ConnectionResetError):
-                    failed = True
-                    break   # the client went away; closing the upstream reply ends the request
+                if is_stream:
+                    to_write = chunk
+                else:
+                    buf = tail + chunk
+                    to_write, tail = buf[:-1], buf[-1:]
+                if to_write:
+                    try:
+                        self.wfile.write(to_write)
+                        self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError):
+                        failed = True
+                        client_gone = True
+                        break   # the client went away; closing the upstream reply ends the request
             if not failed and 200 <= code < 300:
                 _relay_success(client)
             if scan is not None:
                 record_model_request({"time": time.time(), "start": arrived, "client": client,
                                       "status": code, "stream": scan.streamed,
                                       "max_tokens": max_tokens, **scan.done()})
+            if tail and not client_gone:
+                try:
+                    self.wfile.write(tail)
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
 
     def _send_json(self, code, obj):
         payload = json.dumps(obj).encode("utf-8")
@@ -1279,19 +1295,37 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def _send_chat_json(self, grader, started, client, ok, code, obj):
+        if grader:
+            record_grader_call(started, time.time(), client, ok)
+            self._grader_recorded = True
+        self._send_json(code, obj)
+
     def _web_search(self, query):
         """Serve one agent web search (brave_search_reply) and record how it ended
         (settle_web_search): an answer only when the reply was written within OpenClaw's
         web_search timeout, else an agent_web_search harness event."""
         client, arrived, started = self.client_address[0], time.time(), time.monotonic()
         code, body = brave_search_reply(query, client, started=started)
+        payload = json.dumps(body).encode("utf-8")
         delivered = True
         try:
-            self._send_json(code, body)
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            if payload[:-1]:
+                self.wfile.write(payload[:-1])
             self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             delivered = False
         settle_web_search(client, arrived, started, code, delivered)
+        if delivered and payload[-1:]:
+            try:
+                self.wfile.write(payload[-1:])
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     def do_GET(self):
         target = model_relay_target(self.path)
@@ -1326,13 +1360,14 @@ class _Handler(BaseHTTPRequestHandler):
         client = self.client_address[0]
         grader = is_grader_key(self.headers.get("Authorization"))
         started, ok = time.time(), False
+        self._grader_recorded = False
         try:
             self._chat_completion(client, grader, started)
             ok = True
         except _Answered:
             pass
         finally:
-            if grader:
+            if grader and not getattr(self, "_grader_recorded", False):
                 record_grader_call(started, time.time(), client, ok)
 
     def _chat_completion(self, client, grader, started=None):
@@ -1351,7 +1386,8 @@ class _Handler(BaseHTTPRequestHandler):
             if grader:
                 record_harness_event("judge", f"bad request: {e}", client, started,
                                      service_failure=False)
-            self._send_json(400, {"error": {"message": f"bad request: {redact(e)}"}})
+            self._send_chat_json(grader, started, client, False, 400,
+                                 {"error": {"message": f"bad request: {redact(e)}"}})
             raise _Answered()
         kind = "judge_web_search" if wants_web_search(body) else "judge"
         if thinking_off_requested(body):
@@ -1364,12 +1400,14 @@ class _Handler(BaseHTTPRequestHandler):
             if grader:
                 record_harness_event(kind, f"not served: {e}", client, started,
                                      service_failure=False)
-            self._send_json(400, {"error": {"message": str(e), "type": "unsupported_request"}})
+            self._send_chat_json(grader, started, client, False, 400,
+                                 {"error": {"message": str(e), "type": "unsupported_request"}})
             raise _Answered()
         except RequestRejected as e:
             if grader:
                 record_harness_event(kind, str(e), client, started, service_failure=False)
-                self._send_json(503, {"error": {"message": redact(e), "type": "judge_outage"}})
+                self._send_chat_json(grader, started, client, False, 503,
+                                     {"error": {"message": redact(e), "type": "judge_outage"}})
             else:
                 self._send_json(400, {"error": {"message": redact(e),
                                                 "type": "invalid_request_error"}})
@@ -1380,12 +1418,13 @@ class _Handler(BaseHTTPRequestHandler):
             _count_limit_state(label, outage=True)
             record_harness_event(kind if grader else "agent_helper", str(e), client, started,
                                  service_failure=True)
-            self._send_json(503, {"error": {"message": redact(e), "type": "judge_outage"}})
+            self._send_chat_json(grader, started, client, False, 503,
+                                 {"error": {"message": redact(e), "type": "judge_outage"}})
             raise _Answered()
         _count_limit_state(label, outage=False)
         record_answer(kind if grader else "agent_helper", last_answering_model(), client,
                       started, grader)
-        self._send_json(200, parsed)
+        self._send_chat_json(grader, started, client, True, 200, parsed)
 
 
 def _count_limit_state(label, outage):

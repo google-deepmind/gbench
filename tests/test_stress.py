@@ -141,6 +141,7 @@ def test_stress_max_qps_and_prompts_default_env_flag_precedence(monkeypatch):
 def test_stress_client_procs_and_reps_flag_env_precedence(monkeypatch):
     """--stress-client-procs / --stress-reps are uniform with the new knobs:
     flag > GBENCH_STRESS_* env > default (client procs stay auto-capped to cpu_count-1)."""
+    monkeypatch.setattr("gbench.runners.stress.os.cpu_count", lambda: 8)
     monkeypatch.delenv("GBENCH_STRESS_CLIENT_PROCS", raising=False)
     monkeypatch.delenv("GBENCH_STRESS_REPS", raising=False)
     r = StressTestRunner(BenchmarkConfig())

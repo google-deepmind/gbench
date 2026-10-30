@@ -145,7 +145,10 @@ def _relay_call(relay, path, *, token=True, method="POST", body=b"{}", headers=N
     if token:
         hdr[Q.RELAY_TOKEN_HEADER] = relay.token if token is True else token
     conn = _UnixConn(relay.socket_path)
-    conn.request(method, path, body=body if method not in ("GET", "HEAD") else None, headers=hdr)
+    try:
+        conn.request(method, path, body=body if method not in ("GET", "HEAD") else None, headers=hdr)
+    except (BrokenPipeError, ConnectionResetError):
+        pass
     resp = conn.getresponse()
     data = resp.read()
     conn.close()

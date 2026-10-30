@@ -81,7 +81,12 @@ jobs:
         BASE="${{ github.event.before }}"
         if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
            || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-          echo "No usable base commit ($BASE), falling back to HEAD^."
-          BASE="HEAD^"
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            echo "No usable base commit ($BASE), falling back to HEAD^."
+            BASE="HEAD^"
+          else
+            echo "Single-commit history ($BASE), comparing HEAD against itself."
+            BASE="HEAD"
+          fi
         fi
         python3 scripts/check_golden_changelog.py --base "$BASE"

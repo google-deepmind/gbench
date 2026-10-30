@@ -74,6 +74,9 @@ dev = [
     # for the environment that serves models: there it would move numpy and filelock (see
     # tests/README.md).
     "bfcl-eval==2026.3.23",
+    # pyarrow 26.0+ requires NumPy >= 2.0 at C-extension import time without declaring numpy>=2.0
+    # in its wheel metadata, while bfcl-eval==2026.3.23 pins numpy==1.26.4.
+    "pyarrow<26",
 ]
 # Extra dependencies required by specific eval suites. Each suite checks for its dependency
 # at run time and hard-errors (infra_required, with an install hint) if it is absent, so this

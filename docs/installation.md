@@ -19,7 +19,7 @@ gBench is cross-platform and supports both client-only orchestration workstation
 
 ```bash
 # Clone repository
-git clone https://github.com/google-gemma/gbench.git
+git clone https://github.com/google-deepmind/gbench.git
 cd gbench
 
 # Create virtual environment

@@ -213,6 +213,7 @@ def test_stress_point_end_to_end_against_the_stub(monkeypatch, spec):
     base = stub.start()
     r = None
     try:
+        monkeypatch.setattr("gbench.runners.stress.os.cpu_count", lambda: 8)
         cfg = BenchmarkConfig()
         cfg.remote_endpoint = base
         r = StressTestRunner(cfg, tpot_threshold_ms=200)

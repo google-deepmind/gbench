@@ -1,7 +1,7 @@
 # gbench resources directory
 
 ## 1. Core gbench suite
-* **gbench GitHub repository**: source code, runners and docs (`https://github.com/google-gemma/gbench`)
+* **gbench GitHub repository**: source code, runners and docs (`https://github.com/google-deepmind/gbench`)
 
 ## 2. Example serving backends
 gbench works with any OpenAI-compatible `/v1` server and is validated on vLLM and Ollama. The eval

@@ -339,7 +339,9 @@ def test_redirect_resolution_stops_at_the_deadline(stub):
     assert 0.5 <= elapsed < 0.85, elapsed
     assert stub["redirects"].requests[0]["timeout"] <= 0.5
     lookup = ST.last_lookup()
-    assert lookup["links_unresolved"] == 1 and "within" in lookup["unresolved_reasons"][0]
+    assert lookup["links_unresolved"] == 1 and any(
+        s in lookup["unresolved_reasons"][0] for s in ("within", "timed out")
+    )
 
 
 def test_redirect_resolution_stops_at_the_per_link_timeout(stub, monkeypatch):

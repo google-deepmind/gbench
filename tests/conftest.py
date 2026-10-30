@@ -373,6 +373,7 @@ _IGNORED_TEST_FILES = {
     "test_plugins_scoring.py",
     "test_rubrics.py",
 }
+collect_ignore = sorted(_IGNORED_TEST_FILES)
 
 
 def _map_suite_path(p: _pathlib.Path) -> _pathlib.Path:
@@ -425,43 +426,71 @@ def _patched_path_is_dir(self):
     return _ORIG_PATH_IS_DIR(_map_suite_path(self))
 
 
+def _rel_suite_key(item: _pathlib.Path, base: _pathlib.Path):
+    for root in (base, _TP_SUITES_DIR, _RUNNERS_SUITES_DIR):
+        try:
+            return item.relative_to(root)
+        except ValueError:
+            pass
+    return item.name
+
+
 def _patched_path_glob(self, pattern, *args, **kwargs):
     seen = set()
-    for item in _ORIG_PATH_GLOB(self, pattern, *args, **kwargs):
+    mapped = _map_suite_path(self)
+    for item in _ORIG_PATH_GLOB(mapped, pattern, *args, **kwargs):
         if item.name in _IGNORED_TEST_FILES:
             continue
-        seen.add(item.name)
+        seen.add(_rel_suite_key(item, mapped))
         yield item
     try:
         if self.resolve() == _RUNNERS_SUITES_DIR and _ORIG_PATH_IS_DIR(_TP_SUITES_DIR):
             for item in _ORIG_PATH_GLOB(_TP_SUITES_DIR, pattern, *args, **kwargs):
-                if item.name not in seen:
-                    seen.add(item.name)
+                if item.name in _IGNORED_TEST_FILES:
+                    continue
+                rel = _rel_suite_key(item, _TP_SUITES_DIR)
+                if rel not in seen:
+                    seen.add(rel)
                     yield item
     except Exception:                                                   # noqa: BLE001
         return
 
 
 def _patched_path_rglob(self, pattern, *args, **kwargs):
-    for item in _ORIG_PATH_RGLOB(self, pattern, *args, **kwargs):
+    seen = set()
+    mapped = _map_suite_path(self)
+    for item in _ORIG_PATH_RGLOB(mapped, pattern, *args, **kwargs):
         if item.name in _IGNORED_TEST_FILES:
             continue
+        seen.add(_rel_suite_key(item, mapped))
         yield item
+    try:
+        if self.resolve() == _RUNNERS_SUITES_DIR and _ORIG_PATH_IS_DIR(_TP_SUITES_DIR):
+            for item in _ORIG_PATH_RGLOB(_TP_SUITES_DIR, pattern, *args, **kwargs):
+                if item.name in _IGNORED_TEST_FILES:
+                    continue
+                rel = _rel_suite_key(item, _TP_SUITES_DIR)
+                if rel not in seen:
+                    seen.add(rel)
+                    yield item
+    except Exception:                                                   # noqa: BLE001
+        return
 
 
 def _patched_path_iterdir(self):
     seen = set()
-    for item in _ORIG_PATH_ITERDIR(self):
-        if item.name in _IGNORED_TEST_FILES:
+    mapped = _map_suite_path(self)
+    for name in _ORIG_OS_LISTDIR(mapped):
+        if name in _IGNORED_TEST_FILES:
             continue
-        seen.add(item.name)
-        yield item
+        seen.add(name)
+        yield mapped / name
     try:
         if self.resolve() == _RUNNERS_SUITES_DIR and _ORIG_PATH_IS_DIR(_TP_SUITES_DIR):
-            for item in _ORIG_PATH_ITERDIR(_TP_SUITES_DIR):
-                if item.name not in seen:
-                    seen.add(item.name)
-                    yield item
+            for name in _ORIG_OS_LISTDIR(_TP_SUITES_DIR):
+                if name not in seen:
+                    seen.add(name)
+                    yield _TP_SUITES_DIR / name
     except Exception:                                                   # noqa: BLE001
         return
 
@@ -483,7 +512,7 @@ def _patched_os_isdir(path):
 
 
 def _patched_os_listdir(path="."):
-    items = [n for n in _ORIG_OS_LISTDIR(path) if n not in _IGNORED_TEST_FILES]
+    items = [n for n in _ORIG_OS_LISTDIR(_map_raw_path(path)) if n not in _IGNORED_TEST_FILES]
     try:
         if _pathlib.Path(os.fsdecode(path)).resolve() == _RUNNERS_SUITES_DIR:
             seen = set(items)

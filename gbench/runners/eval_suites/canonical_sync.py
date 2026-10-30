@@ -4716,8 +4716,8 @@ VERDICT_PRESERVING: Dict[str, Dict[str, str]] = {
         "reason": "base image pin only: docker/tau2.Dockerfile's FROM python:3.12-slim is pinned by digest (sha256:78387bc3881b), the base the built gbench-tau2:b7ea9074 image already sits on (its layers start with that base's); nothing else in the build, and no request, harness step or score, changes"},
     'tau_common': {"code_fp": '84398b7dfe65ade8',
         "reason": 'docker/tau2_srt/package-lock.json in build context; no request, harness step or score changes'},
-    'wildclawbench': {"code_fp": '0f4f6f1d9a7a1499',
-        "reason": 'packaging path move only: moved to gbench/third_party/eval_suites with LICENSE; no request or score changes'},
+    'wildclawbench': {"code_fp": '4d52c606065d1020',
+        "reason": 'record workdir JSONL files before flushing final HTTP response bytes in proxy handler, and packaging path move to gbench/third_party/eval_suites with LICENSE; no request or score changes'},
 }
 
 
@@ -5388,7 +5388,7 @@ CODE_FP: Dict[str, str] = {
     "ui_control_osworld": "37857029595375d9",
     "vqa_common": "891527af55a8d7d4",
     "wildbench": "5b39dad04dc9e710",
-    "wildclawbench": "0f4f6f1d9a7a1499",
+    "wildclawbench": "4d52c606065d1020",
     "wmdp": "064e102e8ed419cb",
 }
 #: anchor_digest() of each entry when its fingerprint was recorded.
