@@ -4,7 +4,7 @@
 # Dockerfile sets PIP_CONSTRAINT to this file, so every pip install of the build, and the isolated
 # build environment of the judge-server's Cython extension, resolves these versions instead of the
 # newest ones.
-filelock==3.32.6
+filelock==4.2.1
 loguru==0.7.3
 packaging==26.3
 pip==24.0
