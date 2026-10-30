@@ -8,7 +8,7 @@ We welcome contributions from developers, researchers, hardware partners, and fr
 
 1. Fork and clone the repository:
    ```bash
-   git clone https://github.com/google-gemma/gbench.git
+   git clone https://github.com/google-deepmind/gbench.git
    cd gbench
    ```
 2. Create and activate a Python virtual environment:
