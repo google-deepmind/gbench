@@ -13,25 +13,38 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gbench"
-version = "0.5.0"
-description = "Open model performance benchmarking suite via vLLM"
-authors = [{name = "Luciano Martins", email = "lucianommartins@users.noreply.github.com"}]
-license = {text = "Apache-2.0"}
+version = "0.5.0.post1"
+description = "Open model performance and capability benchmarking suite"
+authors = [
+    {name = "Luciano Martins", email = "lucianommartins@users.noreply.github.com"},
+    {name = "Frank Li", email = "frankhli-rgb@users.noreply.github.com"},
+]
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = ["llm", "vllm", "benchmarking", "performance", "gemma"]
+keywords = ["llm", "vllm", "benchmarking", "evaluation", "performance", "gemma", "multimodal"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Benchmark",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
+
+[project.urls]
+Homepage = "https://github.com/google-deepmind/gbench"
+Repository = "https://github.com/google-deepmind/gbench"
+Documentation = "https://github.com/google-deepmind/gbench/tree/main/docs"
+Issues = "https://github.com/google-deepmind/gbench/issues"
 
 # The one binding constraint: gbench's models target pydantic v2, so a fresh resolve must not land
 # on v1 (or a future v3). The other cores are left unpinned; uv.lock provides exact reproducibility.

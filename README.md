@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/gbench-logo.png">
-    <img src="docs/assets/gbench-logo-light.png" alt="gBench logo: a jaguar in sunglasses relaxing with a coffee in front of a speedometer" width="280">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/google-deepmind/gbench/main/docs/assets/gbench-logo.png">
+    <img src="https://raw.githubusercontent.com/google-deepmind/gbench/main/docs/assets/gbench-logo-light.png" alt="gBench logo: a jaguar in sunglasses relaxing with a coffee in front of a speedometer" width="280">
   </picture>
 </p>
 
@@ -28,10 +28,10 @@ It works with any OpenAI-compatible `/v1` server through `--remote-endpoint` (va
 
 ## Key features
 
-- OpenAI API compatibility: measure any OpenAI-compatible `/v1` endpoint with `--remote-endpoint <URL>/v1` (validated on vLLM and Ollama; on Cloud Run, a service that allows unauthenticated calls; see [Remote Endpoint Mode](docs/remote-endpoints.md#remote-endpoint-mode---remote-endpoint)).
+- OpenAI API compatibility: measure any OpenAI-compatible `/v1` endpoint with `--remote-endpoint <URL>/v1` (validated on vLLM and Ollama; on Cloud Run, a service that allows unauthenticated calls; see [Remote Endpoint Mode](https://github.com/google-deepmind/gbench/blob/main/docs/remote-endpoints.md#remote-endpoint-mode---remote-endpoint)).
 - Three capability tiers:
   1. Academic and domain evals (`--evals`): 86 canonical Python suites in `--evals all` (plus `ui_control_osworld` and `swe_lancer`, which run only when named) across 6 core capability pillars (`General Knowledge & Scientific Reasoning`, `Mathematics & Proofs`, `Coding & Algorithmic Design`, `Long Context & Retrieval`, `Tool Use & Agentic Workflows`, `Multimodal Vision & Grounding`) with the model's reasoning mode on request (`--eval-thinking`), images sent as their original bytes where the dataset stores them (no re-encoding), plugin discovery (`--eval-plugins-dir`) and custom JSONL datasets (`--eval-custom-jsonl`).
-  2. Golden Set smoke tests (`--golden-only`): 16 deterministic capability checks (`code_canonical`, `function_call_single`, `structured_json`, etc.) with two-sided presence assertions and `python_exec` unit-test matching, including a labelled [chat template subset](docs/golden-set.md#chat-template-sensitivity-pairs) that separates a broken chat template from a weak model.
+  2. Golden Set smoke tests (`--golden-only`): 16 deterministic capability checks (`code_canonical`, `function_call_single`, `structured_json`, etc.) with two-sided presence assertions and `python_exec` unit-test matching, including a labelled [chat template subset](https://github.com/google-deepmind/gbench/blob/main/docs/golden-set.md#chat-template-sensitivity-pairs) that separates a broken chat template from a weak model.
   3. Agentic quality suite (`--quality-only`): the GemmaClaw / OpenClaw QA suite (the QA scenarios of the pinned GemmaClaw commit, 60 at d8bc6989; scenarios that need another model provider are listed apart and not scored) testing multi-turn tool calling, session memory and plugin routing, run in gBench's local `gbench-quality` Docker image (built once per GemmaClaw commit).
 - Model discovery and GPU sizing: model properties read from the HuggingFace `config.json` (parameter count, MoE topology, vision/audio tokens), a recommended GPU tier per model size (1 GPU up to 20B, 2 GPUs up to 80B, 8 GPUs above) that is checked against the required `--num-gpus` (a warning when off the tier, a refusal when the model will not fit), and a server startup timeout that scales with model size (`max(600, min(3600, (300 + params_b * 10) * 3 * (1.3 if MoE)))`).
 - Repeatability checks: several iterations per configuration with mean, median, standard deviation, P50, P95, P99 and the coefficient of variation, checked against `--max-cv-percent` (default 5.0).
@@ -43,28 +43,28 @@ It works with any OpenAI-compatible `/v1` server through `--remote-endpoint` (va
 
 **Using gBench**
 
-- [Installation](docs/installation.md): requirements, a virtual environment or conda, and the optional installs per use.
-- [CLI argument reference](docs/cli-reference.md): every command-line flag.
-- [Environment variables](docs/environment-variables.md), and every per-suite knob in [docs/evals/env-knobs.md](docs/evals/env-knobs.md).
-- [Remote endpoint mode](docs/remote-endpoints.md): benchmarking any OpenAI-compatible `/v1` server, plus the preflight, smoke and parallel-suite modes ([docs/smoke.md](docs/smoke.md)).
-- [Results](docs/results.md): output layout, result schemas, provenance and exit codes.
-- [Distributed runs](docs/distributed-gbench.md): splitting a sweep across nodes (`--shard`) and merging the results (`--merge`).
-- [Deployment modes](docs/deployment.md): the CLI today; container, Kubernetes and hosted modes on the roadmap.
+- [Installation](https://github.com/google-deepmind/gbench/blob/main/docs/installation.md): requirements, a virtual environment or conda, and the optional installs per use.
+- [CLI argument reference](https://github.com/google-deepmind/gbench/blob/main/docs/cli-reference.md): every command-line flag.
+- [Environment variables](https://github.com/google-deepmind/gbench/blob/main/docs/environment-variables.md), and every per-suite knob in [docs/evals/env-knobs.md](https://github.com/google-deepmind/gbench/blob/main/docs/evals/env-knobs.md).
+- [Remote endpoint mode](https://github.com/google-deepmind/gbench/blob/main/docs/remote-endpoints.md): benchmarking any OpenAI-compatible `/v1` server, plus the preflight, smoke and parallel-suite modes ([docs/smoke.md](https://github.com/google-deepmind/gbench/blob/main/docs/smoke.md)).
+- [Results](https://github.com/google-deepmind/gbench/blob/main/docs/results.md): output layout, result schemas, provenance and exit codes.
+- [Distributed runs](https://github.com/google-deepmind/gbench/blob/main/docs/distributed-gbench.md): splitting a sweep across nodes (`--shard`) and merging the results (`--merge`).
+- [Deployment modes](https://github.com/google-deepmind/gbench/blob/main/docs/deployment.md): the CLI today; container, Kubernetes and hosted modes on the roadmap.
 
 **What gBench measures**
 
-- [Performance benchmarks](docs/performance.md): model discovery, GPU tiers and selection, workload campaigns, dataset backends and repeatability.
-- [Academic and custom eval suites](docs/eval-suites.md) (`--evals`), with one setup and scoring guide per suite in [docs/evals/](docs/evals/), plus [toolchains.md](docs/evals/toolchains.md) (optional dependencies), [docker-sandboxes.md](docs/evals/docker-sandboxes.md) (Docker address pools for the containerized suites) and [large-sweep-setup.md](docs/evals/large-sweep-setup.md) (host limits for long sweeps).
-- [Golden Set capability smoke test](docs/golden-set.md) (`--golden-only`).
-- [Agentic quality suite](docs/quality.md) (`--quality-only`).
+- [Performance benchmarks](https://github.com/google-deepmind/gbench/blob/main/docs/performance.md): model discovery, GPU tiers and selection, workload campaigns, dataset backends and repeatability.
+- [Academic and custom eval suites](https://github.com/google-deepmind/gbench/blob/main/docs/eval-suites.md) (`--evals`), with one setup and scoring guide per suite in [docs/evals/](https://github.com/google-deepmind/gbench/tree/main/docs/evals), plus [toolchains.md](https://github.com/google-deepmind/gbench/blob/main/docs/evals/toolchains.md) (optional dependencies), [docker-sandboxes.md](https://github.com/google-deepmind/gbench/blob/main/docs/evals/docker-sandboxes.md) (Docker address pools for the containerized suites) and [large-sweep-setup.md](https://github.com/google-deepmind/gbench/blob/main/docs/evals/large-sweep-setup.md) (host limits for long sweeps).
+- [Golden Set capability smoke test](https://github.com/google-deepmind/gbench/blob/main/docs/golden-set.md) (`--golden-only`).
+- [Agentic quality suite](https://github.com/google-deepmind/gbench/blob/main/docs/quality.md) (`--quality-only`).
 
 **Background**
 
-- [docs/THIRD_PARTY_DATASETS.md](docs/THIRD_PARTY_DATASETS.md): the datasets the suites load, with their licenses, gated and non-commercial terms. Each dataset's license governs your use of it and of the scores computed on it; read it before publishing results.
-- [docs/RESOURCES.md](docs/RESOURCES.md): the upstream source of each suite. [docs/GOSPEL.md](docs/GOSPEL.md): what gBench is and who it is for.
-- [Scaffold versioning](docs/scaffold-versioning.md): what each pillar pins, so results stay comparable. [Endpoint relay](docs/relay.md): how agent harnesses that cannot be pointed at the endpoint reach the served model. [Evals roadmap](docs/evals_roadmap.md): planned suites and the engineering playbook.
-- [examples/notebooks/](examples/notebooks/): five runnable notebooks (Colab or local Jupyter, against Ollama or a vLLM endpoint; 05 needs Docker, so a local or cloud machine rather than Colab): [01 quickstart](examples/notebooks/01_gbench_101_quickstart.ipynb) (serving latency and the stress limit), [02 workload campaigns and concurrency](examples/notebooks/02_workloads_campaigns_and_concurrency.ipynb), [03 Golden Set smoke tests](examples/notebooks/03_golden_set_capability_smoke_tests.ipynb), [04 academic evals and reasoning mode](examples/notebooks/04_academic_evaluations_and_reasoning.ipynb) and [05 agentic quality with GemmaClaw](examples/notebooks/05_agentic_quality_with_gemmaclaw.ipynb).
-- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute.
+- [docs/THIRD_PARTY_DATASETS.md](https://github.com/google-deepmind/gbench/blob/main/docs/THIRD_PARTY_DATASETS.md): the datasets the suites load, with their licenses, gated and non-commercial terms. Each dataset's license governs your use of it and of the scores computed on it; read it before publishing results.
+- [docs/RESOURCES.md](https://github.com/google-deepmind/gbench/blob/main/docs/RESOURCES.md): the upstream source of each suite. [docs/GOSPEL.md](https://github.com/google-deepmind/gbench/blob/main/docs/GOSPEL.md): what gBench is and who it is for.
+- [Scaffold versioning](https://github.com/google-deepmind/gbench/blob/main/docs/scaffold-versioning.md): what each pillar pins, so results stay comparable. [Endpoint relay](https://github.com/google-deepmind/gbench/blob/main/docs/relay.md): how agent harnesses that cannot be pointed at the endpoint reach the served model. [Evals roadmap](https://github.com/google-deepmind/gbench/blob/main/docs/evals_roadmap.md): planned suites and the engineering playbook.
+- [examples/notebooks/](https://github.com/google-deepmind/gbench/tree/main/examples/notebooks): five runnable notebooks (Colab or local Jupyter, against Ollama or a vLLM endpoint; 05 needs Docker, so a local or cloud machine rather than Colab): [01 quickstart](https://github.com/google-deepmind/gbench/blob/main/examples/notebooks/01_gbench_101_quickstart.ipynb) (serving latency and the stress limit), [02 workload campaigns and concurrency](https://github.com/google-deepmind/gbench/blob/main/examples/notebooks/02_workloads_campaigns_and_concurrency.ipynb), [03 Golden Set smoke tests](https://github.com/google-deepmind/gbench/blob/main/examples/notebooks/03_golden_set_capability_smoke_tests.ipynb), [04 academic evals and reasoning mode](https://github.com/google-deepmind/gbench/blob/main/examples/notebooks/04_academic_evaluations_and_reasoning.ipynb) and [05 agentic quality with GemmaClaw](https://github.com/google-deepmind/gbench/blob/main/examples/notebooks/05_agentic_quality_with_gemmaclaw.ipynb).
+- [CONTRIBUTING.md](https://github.com/google-deepmind/gbench/blob/main/CONTRIBUTING.md): how to contribute.
 
 ---
 
@@ -84,7 +84,7 @@ pip install vllm                 # local GPU serving, and remote real-dataset wo
 pip install -e ".[evals]"        # the eval suites' client, scorer and harness dependencies
 ```
 
-The [installation guide](docs/installation.md) covers the requirements, conda, the optional installs per suite and the test environment.
+The [installation guide](https://github.com/google-deepmind/gbench/blob/main/docs/installation.md) covers the requirements, conda, the optional installs per suite and the test environment.
 
 ---
 
@@ -141,11 +141,11 @@ gbench --models google/gemma-4-12B-it --num-gpus 1 --preset default --dry-run
 
 ### Tier 1: academic and custom evals (`--evals`)
 
-The full catalog of the 86 suites in 6 pillars, with each suite's protocol and options, custom plugins and JSONL suites: [docs/eval-suites.md](docs/eval-suites.md). Each suite has a setup and scoring guide in [docs/evals/](docs/evals/).
+The full catalog of the 86 suites in 6 pillars, with each suite's protocol and options, custom plugins and JSONL suites: [docs/eval-suites.md](https://github.com/google-deepmind/gbench/blob/main/docs/eval-suites.md). Each suite has a setup and scoring guide in [docs/evals/](https://github.com/google-deepmind/gbench/tree/main/docs/evals).
 
 ### Tier 2: Golden Set capability smoke test (`--golden-only`)
 
-16 deterministic capability checks (code, math, tool calling, structured output, chat templates, factual knowledge, translation, safety, vision and audio) with two-sided presence assertions and `python_exec` unit-test matching, including a [chat-template subset](docs/golden-set.md#chat-template-sensitivity-pairs) that separates a broken chat template from a weak model. Details: [docs/golden-set.md](docs/golden-set.md).
+16 deterministic capability checks (code, math, tool calling, structured output, chat templates, factual knowledge, translation, safety, vision and audio) with two-sided presence assertions and `python_exec` unit-test matching, including a [chat-template subset](https://github.com/google-deepmind/gbench/blob/main/docs/golden-set.md#chat-template-sensitivity-pairs) that separates a broken chat template from a weak model. Details: [docs/golden-set.md](https://github.com/google-deepmind/gbench/blob/main/docs/golden-set.md).
 
 ### Tier 3: agentic quality suite (`--quality-only`)
 
@@ -154,7 +154,7 @@ Evaluates multi-turn agent behavior with the GemmaClaw / OpenClaw QA suite: the 
 - **Image build**: clones GemmaClaw (`~/.cache/gbench/gemmaclaw`, no working tree) and builds a local `gbench-quality` image from the commit's `git archive` (the TypeScript workspace installed and built inside it), then runs the suite in a container of that image against `/v1`.
 - **Build cache**: the image is tagged with the commit and a digest of its Dockerfile, helpers and gBench's edits, so it is built once per commit (several minutes on the first run).
 - **Configuration**: generates a throwaway `openclaw.json` that disables the third-party plugins the suite does not use, to keep memory use down.
-- **Gemini-only helper models**: the QA suite's alternate model (`google/gemini-3.1-pro-preview`, via `--alt-model`, in place of `openai/gpt-5.4`), image-generation model (`google/gemini-3.1-flash-image-preview`, via a recorded edit applied in the image's build context, in place of `openai/gpt-image-1`) and memory embeddings (`google/gemini-embedding-001`, in place of `openai/text-embedding-3-small`) run on the Gemini API, and every Gemini call is recorded in `gemini_calls`; `GEMINI_API_KEYS` or `GEMINI_API_KEY` is required. No key reaches the model under test: the suite runs in gBench's own Docker container (no network, cloud metadata servers unreachable, a read-only checkout, a user without capabilities, no host path writable), and its only way out is a forwarder in the container that hands its model-endpoint and Gemini calls to a relay in gBench over a unix socket; the relay alone holds the keys and forwards only the Gemini API calls the suite makes. Harness errors (relay, endpoint, Gemini or container failures) are not scored; a model-endpoint 4xx other than 400 and 422 on the suite's own requests (for example the 404 of an endpoint that serves the model under another name) is one, and a run with no scenario left to score withholds its pass rate (`null`, printed `withheld`), never 0. Details: [docs/quality.md](docs/quality.md).
+- **Gemini-only helper models**: the QA suite's alternate model (`google/gemini-3.1-pro-preview`, via `--alt-model`, in place of `openai/gpt-5.4`), image-generation model (`google/gemini-3.1-flash-image-preview`, via a recorded edit applied in the image's build context, in place of `openai/gpt-image-1`) and memory embeddings (`google/gemini-embedding-001`, in place of `openai/text-embedding-3-small`) run on the Gemini API, and every Gemini call is recorded in `gemini_calls`; `GEMINI_API_KEYS` or `GEMINI_API_KEY` is required. No key reaches the model under test: the suite runs in gBench's own Docker container (no network, cloud metadata servers unreachable, a read-only checkout, a user without capabilities, no host path writable), and its only way out is a forwarder in the container that hands its model-endpoint and Gemini calls to a relay in gBench over a unix socket; the relay alone holds the keys and forwards only the Gemini API calls the suite makes. Harness errors (relay, endpoint, Gemini or container failures) are not scored; a model-endpoint 4xx other than 400 and 422 on the suite's own requests (for example the 404 of an endpoint that serves the model under another name) is one, and a run with no scenario left to score withholds its pass rate (`null`, printed `withheld`), never 0. Details: [docs/quality.md](https://github.com/google-deepmind/gbench/blob/main/docs/quality.md).
 
 ```bash
 # Run specific GemmaClaw QA scenarios (by scenario id) from a local checkout
@@ -169,7 +169,7 @@ gbench --quality-only --remote-endpoint http://127.0.0.1:8000/v1 --tokenizer goo
 2. Run code style check: `ruff check gbench/`
 3. Run type checker: `mypy gbench/`
 4. Run unit test suite: `pytest tests/` (the Gemma 4 chat-template artifact check is not a unit test; it lives in `tools/template_checks/`, see its README)
-5. The pull-request gate is the unit-test suite (`pytest tests/`, see [CONTRIBUTING.md](CONTRIBUTING.md)). A change to the Golden Set keeps its two-sided presence assertions; the Golden Set itself measures a model and never gates a gBench merge.
+5. The pull-request gate is the unit-test suite (`pytest tests/`, see [CONTRIBUTING.md](https://github.com/google-deepmind/gbench/blob/main/CONTRIBUTING.md)). A change to the Golden Set keeps its two-sided presence assertions; the Golden Set itself measures a model and never gates a gBench merge.
 
 ---
 

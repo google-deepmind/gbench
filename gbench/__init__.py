@@ -19,8 +19,8 @@ A production-grade, modular benchmarking tool for comprehensive evaluation
 of open models served by vLLM or any OpenAI-compatible endpoint (text and multimodal).
 """
 
-__version__ = "0.5.0"
-__author__ = "Luciano Martins"
+__version__ = "0.5.0.post1"
+__author__ = "Luciano Martins, Frank Li"
 
 import os
 import re
