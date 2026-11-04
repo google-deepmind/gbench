@@ -33,7 +33,7 @@ distlib==0.4.0
 distro==1.9.0
 fastapi==0.135.1
 fastuuid==0.14.0
-filelock==3.25.2
+filelock==4.2.1
 flake8==7.3.0
 fonttools==4.62.1
 frozenlist==1.8.0
