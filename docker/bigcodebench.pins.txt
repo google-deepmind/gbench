@@ -120,7 +120,7 @@ multiprocess==0.70.16
 mypy_extensions==1.1.0
 natsort==7.1.1
 networkx==2.6.3
-nltk==3.8
+nltk==3.10.4
 numba==0.55.0
 numpy==1.21.2
 nvidia-cublas-cu12==12.4.5.8
