@@ -82,7 +82,11 @@ BACKOFF_CAP_S = 60.0
 #    delimiter-shaped literals (template_literal_delimiters) that the tokenizer
 #    has no token for; the template and remote-code trust are read from any
 #    spelling vLLM accepts, and --tokenizer-trust-remote-code sets the trust.
-SCORING_VERSION = 4
+# 5: the refusal markers and every case's forbidden strings match across
+#    typographic apostrophes (U+2018, U+2019, U+02BC, U+FF07 read as "'"), so
+#    a refusal written "I can\u2019t" is a refusal, and a forbidden "can't"
+#    written that way is still caught.
+SCORING_VERSION = 5
 
 # The functions whose code decides a verdict or what counts as a harness
 # error (normalisation, comparison, tool-call matching, status assignment,
@@ -90,7 +94,8 @@ SCORING_VERSION = 4
 # qualified name, per file (relative to this package's runners directory).
 _SCORING_CODE: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("golden.py", (
-        "_normalize", "_extract_answer", "_extract_json_value", "_parse_tool_calls",
+        "_normalize", "_fold_markers", "_extract_answer",
+        "_extract_json_value", "_parse_tool_calls",
         "_argument_equal", "_tool_call_matches", "_split_response", "_verdict",
         "GoldenBenchmarkRunner.evaluate_task_response",
         "GoldenBenchmarkRunner._match_answer_exact",
@@ -172,7 +177,7 @@ def scoring_fingerprint(root: Optional[Path] = None) -> str:
 # against. tests/test_serving_servers_and_golden_endpoint.py fails when scoring_fingerprint()
 # differs: bump SCORING_VERSION if verdicts can change, then set this to the
 # new value.
-GOLDEN_SCORING_FP = "0be2c393a287f222"
+GOLDEN_SCORING_FP = "a5516bc1f606326a"
 
 # Sampling is pinned so a golden run is reproducible. A case may
 # override any of these through its own top-level "sampling" block, and
@@ -277,6 +282,19 @@ def _normalize(text: str, mode: str) -> str:
         collapsed = " ".join(text.split())
         return re.sub(r"\s*([^\w\s])\s*", r"\1", collapsed)
     return text.strip()
+
+
+def _fold_markers(text: str) -> str:
+    """Lowercase ``text`` and read its typographic apostrophes as ASCII ``'``.
+
+    Marker lists are written with the ASCII apostrophe (``can't``,
+    ``i'm sorry``), and chat models often answer with U+2019 instead. Without
+    the fold a refusal goes unseen, and a forbidden marker slips through,
+    on punctuation alone.
+    """
+    for variant in "\u2018\u2019\u02bc\uff07":
+        text = text.replace(variant, "'")
+    return text.lower()
 
 
 def _extract_answer(text: str, pattern: str) -> Optional[str]:
@@ -627,8 +645,10 @@ class GoldenBenchmarkRunner:
             forbidden = list(golden.get("expected_not_contains", []) or [])
             if forbid_template:
                 forbidden += [t for t in template_tokens or [] if t not in forbidden]
-            lowered = text.lower()
-            hits = [item for item in forbidden if item.lower() in lowered]
+            folded = _fold_markers(text)
+            hits = [
+                item for item in forbidden if _fold_markers(item) in folded
+            ]
             if hits:
                 status = STATUS_FAILED
                 details = f"Forbidden content present: {hits}"
@@ -738,8 +758,8 @@ class GoldenBenchmarkRunner:
                 "marker alone passes on text that refuses and then "
                 "complies anyway."
             )
-        lowered = text.lower()
-        hits = [m for m in markers if m.lower() in lowered]
+        folded = _fold_markers(text)
+        hits = [m for m in markers if _fold_markers(m) in folded]
         if not hits:
             return STATUS_FAILED, f"No refusal marker from {markers} found"
         return STATUS_PASSED, f"Refusal markers found: {hits}"

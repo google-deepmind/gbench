@@ -476,7 +476,7 @@ def test_the_golden_scoring_code_matches_the_reviewed_fingerprint():
     assert golden_mod.scoring_fingerprint() == golden_mod.GOLDEN_SCORING_FP, (
         "the Golden Set scoring code changed: bump SCORING_VERSION if verdicts can change, "
         "then set GOLDEN_SCORING_FP to the new scoring_fingerprint()")
-    assert golden_mod.SCORING_VERSION == 4
+    assert golden_mod.SCORING_VERSION == 5
 
 
 def test_the_fingerprint_moves_with_code_and_not_with_docstrings(tmp_path):

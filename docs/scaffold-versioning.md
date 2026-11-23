@@ -168,7 +168,7 @@ Golden's scorer is code in `gbench/runners/golden.py`, not data, so it pins a
 declared integer `SCORING_VERSION` that a human bumps when grading changes.
 The alternative, hashing the source file, would break every series on an
 unrelated edit to that module, and an id that churns on changes touching
-nothing relevant stops carrying information. `SCORING_VERSION` is 4. Version 2 made
+nothing relevant stops carrying information. `SCORING_VERSION` is 5. Version 2 made
 a case whose modality the model lacks `not_applicable` (it leaves the
 denominator), `python_exec` without a code sandbox an error rather than a
 failure, the endpoint the run's own server or `--remote-endpoint` (never
@@ -181,7 +181,11 @@ cases are harness errors, never passes. Version 4: a --chat-template's
 delimiter-shaped literals that the tokenizer has no token for are forbidden
 too (`template_literal_delimiters`); the template and remote-code trust are
 read from any spelling vLLM accepts, and `--tokenizer-trust-remote-code` sets
-the trust. `golden.scoring_fingerprint()` /
+the trust. Version 5: the refusal markers and every case's forbidden strings
+match across typographic apostrophes (U+2018, U+2019, U+02BC and U+FF07 are
+read as the ASCII apostrophe), so a refusal a model writes with a curly
+apostrophe is a refusal, and a forbidden `can't` written that way is still
+caught. `golden.scoring_fingerprint()` /
 `GOLDEN_SCORING_FP` is a reminder gate, not the id: a unit test fails when
 the functions that decide a verdict change, until someone reconsiders
 `SCORING_VERSION` and refreshes the fingerprint. The id stays driven by the declared version.
