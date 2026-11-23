@@ -187,7 +187,7 @@ def test_the_chat_template_cases_no_longer_name_any_models_delimiters(config):
 
 
 def test_the_scoring_version_moved_and_the_fingerprint_was_reviewed():
-    assert golden_mod.SCORING_VERSION == 4
+    assert golden_mod.SCORING_VERSION == 5
     assert golden_mod.scoring_fingerprint() == golden_mod.GOLDEN_SCORING_FP
 
 
