@@ -25,7 +25,7 @@ blake3==0.4.1
 blinker==1.9.0
 bounded-pool-executor==0.0.3
 branca==0.8.2
-certifi==2026.7.22
+certifi==2026.10.18
 cffi==2.1.1
 chardet==5.2.0
 charset-normalizer==3.5.1
