@@ -67,7 +67,7 @@ json5==0.13.0
 jsonschema-specifications==2025.9.1
 jsonschema==4.26.0
 kiwisolver==1.5.0
-litellm==1.82.3
+litellm==1.100.4
 lox==1.0.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
