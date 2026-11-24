@@ -128,7 +128,7 @@ rich==14.3.3
 rpds-py==0.30.0
 scipy==1.17.1
 semver==3.0.4
-setuptools==82.0.1
+setuptools==84.1.0
 shellingham==1.5.4
 shtab==1.8.0
 six==1.17.0
