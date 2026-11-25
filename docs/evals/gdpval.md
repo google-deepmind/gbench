@@ -402,6 +402,20 @@ then this is a gbench-internal wins-or-ties rate and `leaderboard_comparable` st
   (comparisons that were not a consistent win or loss in both positions), `consistent_pairs` (how
   often the two position-swapped verdicts agreed) and `judge_invalid_replies` expose the
   judgement quality. `attempts` (from the shared runner) adds pass@3 / pass^3 over the tasks.
+* `coverage`: detailed breakdown by sector (`coverage.by_sector`) and by occupation
+  (`coverage.by_occupation`) tracking task counts across the three pipeline stages:
+  - **starting**: `starting_tasks` loaded in the run or shard;
+  - **reference-eligibility**: `reference_eligible_tasks` (tasks with a text-renderable reference
+    deliverable), alongside `no_reference_tasks` broken down by `no_reference_by_reason`
+    (`no_deliverable_shipped` vs `no_text_rendering`);
+  - **scored**: `scored_tasks`, `scored_comparisons`, `wins`, `ties`, `losses`, and per-group `win_rate`.
+* `macro_win_rate_by_sector_pct` and `macro_win_rate_by_occupation_pct`: unweighted macro-averages
+  across scored sectors and occupations. Headline `accuracy` / `win_rate_pct` is a pooled
+  micro-average across all comparisons; because reference availability drops tasks non-uniformly
+  across sectors (e.g. at the pinned revision, Information retains 14 of 25 tasks while Manufacturing
+  retains 25 of 25; 22 of 44 occupations lose tasks), sectors with higher retention contribute more
+  to the pooled aggregate. Macro rates weight each scored sector or occupation equally to keep the
+  evaluated task mix and weighting transparent.
 
 ## Sharding
 

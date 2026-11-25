@@ -835,6 +835,8 @@ def _load_gdpval_samples(
             json.dumps(criteria),
             {"category": str(item.get("occupation") or item.get("sector") or "knowledge_work"),
              "task_id": task_id,
+             "sector": str(item.get("sector") or "Unknown"),
+             "occupation": str(item.get("occupation") or "Unknown"),
              "attachments": len(refs),
              "attachments_rendered": rendered,
              "attachments_unavailable": unavailable,
@@ -1002,6 +1004,161 @@ def _outcome(pairwise: float) -> str:
 GENERATION_FAILED_STATUSES = ("FAILED", "TIMEOUT", "OVER_CONTEXT")
 #: How much of each judge reply a trace keeps (the replies are one short JSON object).
 _MAX_STORED_REPLY_CHARS = 4000
+
+
+def compute_coverage(
+    sample_traces: List[Dict[str, Any]],
+    eligible: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Breakdown of tasks and scored comparisons by sector and occupation across the
+    starting, reference-eligibility, and scored stages.
+    """
+    tasks: Dict[str, Dict[str, Any]] = {}
+    for t in sample_traces:
+        ep = t.get("extra_payload") or {}
+        tid = str(ep.get("task_id") or "")
+        if not tid:
+            continue
+        if tid not in tasks:
+            tasks[tid] = {
+                "sector": str(ep.get("sector") or "Unknown"),
+                "occupation": str(ep.get("occupation") or ep.get("category") or "Unknown"),
+                "has_reference": t.get("status") != "NO_REFERENCE",
+                "no_reference_reason": t.get("no_reference_reason"),
+            }
+        else:
+            if t.get("status") != "NO_REFERENCE":
+                tasks[tid]["has_reference"] = True
+            if t.get("no_reference_reason"):
+                tasks[tid]["no_reference_reason"] = t.get("no_reference_reason")
+
+    by_sector: Dict[str, Dict[str, Any]] = {}
+    by_occupation: Dict[str, Dict[str, Any]] = {}
+
+    def _init_cell(sec: Optional[str] = None) -> Dict[str, Any]:
+        cell: Dict[str, Any] = {
+            "starting_tasks": 0,
+            "reference_eligible_tasks": 0,
+            "no_reference_tasks": 0,
+            "no_reference_by_reason": {"no_deliverable_shipped": 0, "no_text_rendering": 0},
+            "scored_tasks": 0,
+            "scored_comparisons": 0,
+            "attempts": 0,
+            "wins": 0,
+            "ties": 0,
+            "losses": 0,
+        }
+        if sec is not None:
+            cell["sector"] = sec
+        return cell
+
+    for tid, info in tasks.items():
+        sec = info["sector"]
+        occ = info["occupation"]
+        if sec not in by_sector:
+            by_sector[sec] = _init_cell()
+        if occ not in by_occupation:
+            by_occupation[occ] = _init_cell(sec=sec)
+
+        by_sector[sec]["starting_tasks"] += 1
+        by_occupation[occ]["starting_tasks"] += 1
+
+        if info["has_reference"]:
+            by_sector[sec]["reference_eligible_tasks"] += 1
+            by_occupation[occ]["reference_eligible_tasks"] += 1
+        else:
+            by_sector[sec]["no_reference_tasks"] += 1
+            by_occupation[occ]["no_reference_tasks"] += 1
+            reason = info["no_reference_reason"]
+            if reason in by_sector[sec]["no_reference_by_reason"]:
+                by_sector[sec]["no_reference_by_reason"][reason] += 1
+            if reason in by_occupation[occ]["no_reference_by_reason"]:
+                by_occupation[occ]["no_reference_by_reason"][reason] += 1
+
+    task_has_scored: Dict[str, bool] = {}
+    for t in eligible:
+        ep = t.get("extra_payload") or {}
+        tid = str(ep.get("task_id") or "")
+        info = tasks.get(tid)
+        if not info:
+            continue
+        sec = info["sector"]
+        occ = info["occupation"]
+
+        if not task_has_scored.get(tid):
+            task_has_scored[tid] = True
+            by_sector[sec]["scored_tasks"] += 1
+            by_occupation[occ]["scored_tasks"] += 1
+
+        by_sector[sec]["scored_comparisons"] += 1
+        by_occupation[occ]["scored_comparisons"] += 1
+
+        out = t.get("pairwise_outcome")
+        if out == "win":
+            by_sector[sec]["wins"] += 1
+            by_occupation[occ]["wins"] += 1
+        elif out == "tie":
+            by_sector[sec]["ties"] += 1
+            by_occupation[occ]["ties"] += 1
+        elif out == "loss":
+            by_sector[sec]["losses"] += 1
+            by_occupation[occ]["losses"] += 1
+
+    for t in sample_traces:
+        ep = t.get("extra_payload") or {}
+        tid = str(ep.get("task_id") or "")
+        info = tasks.get(tid)
+        if not info:
+            continue
+        by_sector[info["sector"]]["attempts"] += 1
+        by_occupation[info["occupation"]]["attempts"] += 1
+
+    for cell in list(by_sector.values()) + list(by_occupation.values()):
+        comps = cell["scored_comparisons"]
+        if comps > 0:
+            rate = round((cell["wins"] + cell["ties"]) / comps, 4)
+            cell["win_rate"] = rate
+            cell["win_rate_pct"] = round(rate * 100.0, 2)
+            cell["wins_only_rate"] = round(cell["wins"] / comps, 4)
+            cell["wins_only_pct"] = round(cell["wins_only_rate"] * 100.0, 2)
+        else:
+            cell["win_rate"] = None
+            cell["win_rate_pct"] = None
+            cell["wins_only_rate"] = None
+            cell["wins_only_pct"] = None
+
+    by_sector = dict(sorted(by_sector.items()))
+    by_occupation = dict(sorted(by_occupation.items()))
+
+    sec_rates = [v["win_rate"] for v in by_sector.values() if v["win_rate"] is not None]
+    macro_sec = round(sum(sec_rates) / len(sec_rates), 4) if sec_rates else None
+
+    occ_rates = [v["win_rate"] for v in by_occupation.values() if v["win_rate"] is not None]
+    macro_occ = round(sum(occ_rates) / len(occ_rates), 4) if occ_rates else None
+
+    n_starting = len(tasks)
+    n_eligible = sum(1 for info in tasks.values() if info["has_reference"])
+    n_scored = sum(1 for tid in tasks if task_has_scored.get(tid))
+
+    return {
+        "by_sector": by_sector,
+        "by_occupation": by_occupation,
+        "starting_tasks": n_starting,
+        "reference_eligible_tasks": n_eligible,
+        "scored_tasks": n_scored,
+        "macro_win_rate_by_sector": macro_sec,
+        "macro_win_rate_by_sector_pct": round(macro_sec * 100.0, 2) if macro_sec is not None else None,
+        "macro_win_rate_by_occupation": macro_occ,
+        "macro_win_rate_by_occupation_pct": round(macro_occ * 100.0, 2) if macro_occ is not None else None,
+        "weighting_note": (
+            "Headline win_rate is a pooled micro-average over all scored comparisons. "
+            "Because reference eligibility drops tasks non-uniformly across sectors "
+            "(e.g., Information retains 14 of 25 tasks while Manufacturing retains 25 of 25), "
+            "sectors and occupations with higher retention contribute more to the aggregate. "
+            "Macro rates (macro_win_rate_by_sector and macro_win_rate_by_occupation) weight each "
+            "scored sector or occupation equally."
+        ),
+    }
 
 
 def _make_scorer(judge_model: Optional[str], judge_concurrency: int, metrics: Dict[str, Any],
@@ -1208,6 +1365,9 @@ def _make_scorer(judge_model: Optional[str], judge_concurrency: int, metrics: Di
             "clip_limits": clip_limits(),
             # Which cascade models actually answered the pairwise calls.
             "judge_models_used": dict(judges_used),
+            # Coverage breakdown by sector and occupation across starting, reference-eligible
+            # and scored stages.
+            "coverage": compute_coverage(sample_traces, eligible),
         }
     return _score
 
@@ -1347,7 +1507,7 @@ def run_gdpval(
             "scorable_short_of_limit; a full run keeps every task)")
     elif kwargs.get("limit"):
         reasons.append(f"--eval-limit {kwargs.get('limit')} runs a subset of the 220 tasks")
-    rep = metrics.get("gdpval_report") or {}
+    rep = metrics.get("gdpval_report") or result.get("gdpval_report") or {}
     by_reason = rep.get("tasks_no_reference_by_reason") or {}
     if any(by_reason.values()):
         reasons[3] = ("tasks without a text-renderable reference are excluded ("
@@ -1366,6 +1526,13 @@ def run_gdpval(
                        f"verdict excluded ({rep.get('judge_invalid_replies', 0)} judge repl(ies) "
                        "without a valid winner)")
     reasons += clip_reasons(rep)
+    cov = rep.get("coverage") or {}
+    if cov:
+        result["coverage"] = cov
+        if cov.get("macro_win_rate_by_sector_pct") is not None:
+            result["macro_win_rate_by_sector_pct"] = cov["macro_win_rate_by_sector_pct"]
+        if cov.get("macro_win_rate_by_occupation_pct") is not None:
+            result["macro_win_rate_by_occupation_pct"] = cov["macro_win_rate_by_occupation_pct"]
     result["leaderboard_comparable"] = False
     result["leaderboard_comparable_reason"] = (
         "; ".join(reasons) + "; a gbench-internal wins-or-ties rate, not OpenAI's GDPval number")
@@ -1414,7 +1581,8 @@ def run_gdpval(
             f"verdict ({result['comparisons_judge_outage']}) and generations whose request "
             f"failed ({result['comparisons_generation_failed']}) are excluded from the "
             f"win-rate, not counted as losses; an empty deliverable the model returned IS "
-            f"counted, as a loss.")
+            f"counted, as a loss. Coverage breakdown by sector and occupation across starting, "
+            f"reference-eligible and scored stages is reported under 'coverage'.")
         if no_ref or outage or gen_failed:
             logger.warning(
                 "[gdpval] win-rate covers %d comparison(s) over %d task(s): %d task(s) had no "

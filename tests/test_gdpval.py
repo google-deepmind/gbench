@@ -411,3 +411,283 @@ def test_a_thinking_run_samples_at_one_and_the_reason_says_who_set_it(monkeypatc
     assert seen["thinking"] is True and seen["official_sampling"] is G.GDPVAL_SAMPLING
     assert ("temperature 1.0 set by gbench's rule (1.0 with --thinking, 0.0 without)"
             in r["leaderboard_comparable_reason"])
+
+
+# --------------------------------------------------------------------------- #
+# coverage breakdown by sector and occupation (Issue #12)
+# --------------------------------------------------------------------------- #
+def test_loader_retains_sector_and_occupation_in_sample_metadata():
+    row = dict(_ROW, sector="Information", occupation="Software Developers")
+    samples, _ = _load([row])
+    meta = samples[0][2]
+    assert meta["sector"] == "Information"
+    assert meta["occupation"] == "Software Developers"
+
+
+def test_make_scorer_computes_coverage_end_to_end():
+    """Execute the real _make_scorer async pipeline with position-swapped judging,
+    verifying that coverage tracks starting, reference-eligible, and scored stages.
+    """
+    from gbench.runners.eval_suites import base
+
+    rubric = json.dumps([{"score": 5, "criterion": "c"}])
+    traces = [
+        # Task 1: Information / Software Developers (scored)
+        {"extra_payload": {"task_id": "t1", "sector": "Information", "occupation": "Software Developers"},
+         "gold_answer": rubric, "response_text": "Answer 1",
+         "messages": [{"role": "user", "content": "Prompt 1"}]},
+        {"extra_payload": {"task_id": "t1", "sector": "Information", "occupation": "Software Developers"},
+         "gold_answer": rubric, "response_text": "Answer 1 retry",
+         "messages": [{"role": "user", "content": "Prompt 1"}]},
+        # Task 2: Information / Technical Writers (no reference shipped)
+        {"extra_payload": {"task_id": "t2", "sector": "Information", "occupation": "Technical Writers"},
+         "gold_answer": rubric, "response_text": "Answer 2",
+         "messages": [{"role": "user", "content": "Prompt 2"}]},
+        # Task 3: Manufacturing / Mechanical Engineers (scored)
+        {"extra_payload": {"task_id": "t3", "sector": "Manufacturing", "occupation": "Mechanical Engineers"},
+         "gold_answer": rubric, "response_text": "Answer 3",
+         "messages": [{"role": "user", "content": "Prompt 3"}]},
+    ]
+    refs = {
+        "t1": {"text": "Expert text for t1", "note": None, "n_files": 1},
+        "t2": {"text": None, "note": "no reference deliverable", "n_files": 0},
+        "t3": {"text": "Expert text for t3", "note": None, "n_files": 1},
+    }
+
+    async def fake_judge(prompt):
+        # A tie in position-swapped calls gives pairwise_score 0.5
+        return json.dumps({"winner": "tie"}), "gemini-3.6-flash"
+
+    metrics = {}
+    with mock.patch.object(G, "judge_generate_cascade", fake_judge):
+        asyncio.run(G._make_scorer(None, 2, metrics, refs)(traces))
+
+    assert "gdpval_report" in metrics
+    cov = metrics["gdpval_report"]["coverage"]
+
+    # Starting stage
+    assert cov["starting_tasks"] == 3
+    assert cov["by_sector"]["Information"]["starting_tasks"] == 2
+    assert cov["by_sector"]["Manufacturing"]["starting_tasks"] == 1
+
+    # Reference-eligibility stage
+    assert cov["reference_eligible_tasks"] == 2
+    assert cov["by_sector"]["Information"]["reference_eligible_tasks"] == 1
+    assert cov["by_sector"]["Information"]["no_reference_tasks"] == 1
+    assert cov["by_sector"]["Information"]["no_reference_by_reason"]["no_deliverable_shipped"] == 1
+    assert cov["by_sector"]["Manufacturing"]["reference_eligible_tasks"] == 1
+
+    # Scored stage
+    assert cov["scored_tasks"] == 2
+    assert cov["by_sector"]["Information"]["scored_tasks"] == 1
+    assert cov["by_sector"]["Information"]["scored_comparisons"] == 2
+    assert cov["by_sector"]["Information"]["win_rate"] == 1.0  # ties count as wins/ties
+    assert cov["by_sector"]["Manufacturing"]["scored_tasks"] == 1
+    assert cov["by_sector"]["Manufacturing"]["scored_comparisons"] == 1
+    assert cov["by_sector"]["Manufacturing"]["win_rate"] == 1.0
+
+    # Macro averages
+    assert cov["macro_win_rate_by_sector"] == 1.0
+    assert cov["macro_win_rate_by_sector_pct"] == 100.0
+    assert cov["macro_win_rate_by_occupation"] == 1.0
+
+
+def test_run_gdpval_full_pipeline_coverage_reporting(monkeypatch):
+    """Execute the full run_gdpval suite through base.run_eval_suite without mocking
+    _make_scorer, ensuring real coverage calculation and result attachment.
+    """
+    from gbench.runners.eval_suites import base
+
+    rubric = json.dumps([{"score": 5, "criterion": "c"}])
+    samples = [
+        ([{"role": "user", "content": "Task 1 prompt"}], rubric,
+         {"task_id": "t1", "sector": "Information", "occupation": "Software Developers", "category": "Software Developers"}),
+        ([{"role": "user", "content": "Task 2 prompt"}], rubric,
+         {"task_id": "t2", "sector": "Information", "occupation": "Technical Writers", "category": "Technical Writers"}),
+        ([{"role": "user", "content": "Task 3 prompt"}], rubric,
+         {"task_id": "t3", "sector": "Manufacturing", "occupation": "Mechanical Engineers", "category": "Mechanical Engineers"}),
+    ]
+    refs = {
+        "t1": {"text": "Expert deliverable t1", "note": None, "n_files": 1},
+        "t2": {"text": None, "note": "no deliverable shipped", "n_files": 0},
+        "t3": {"text": "Expert deliverable t3", "note": None, "n_files": 1},
+    }
+
+    async def fake_send(*args, **kwargs):
+        return base.Reply(text="Candidate model deliverable answer", tool_calls=None, finish_reason="stop")
+
+    async def fake_judge(prompt):
+        # Deliverable A wins
+        return json.dumps({"winner": "A"}), "gemini-3.6-flash"
+
+    monkeypatch.setattr(G, "gemini_required_skip", lambda *a: None)
+    monkeypatch.setattr(G, "_load_gdpval_samples", lambda limit=None: (samples, refs))
+    monkeypatch.setattr(base, "_send_single_request", fake_send)
+    monkeypatch.setattr(G, "judge_generate_cascade", fake_judge)
+
+    res = G.run_gdpval("test-model", "http://127.0.0.1:8000/v1", 1, attempt_count=1)
+
+    assert "coverage" in res
+    cov = res["coverage"]
+    assert cov["starting_tasks"] == 3
+    assert cov["reference_eligible_tasks"] == 2
+    assert cov["scored_tasks"] == 2
+
+    # Information: 2 starting, 1 reference-eligible, 1 scored
+    info = cov["by_sector"]["Information"]
+    assert info["starting_tasks"] == 2
+    assert info["reference_eligible_tasks"] == 1
+    assert info["no_reference_tasks"] == 1
+    assert info["scored_tasks"] == 1
+
+    # Manufacturing: 1 starting, 1 reference-eligible, 1 scored
+    mfg = cov["by_sector"]["Manufacturing"]
+    assert mfg["starting_tasks"] == 1
+    assert mfg["reference_eligible_tasks"] == 1
+    assert mfg["scored_tasks"] == 1
+
+    # Top-level macro fields
+    assert "macro_win_rate_by_sector_pct" in res
+    assert "macro_win_rate_by_occupation_pct" in res
+    assert "Coverage breakdown by sector and occupation" in res["scoring_note"]
+
+
+
+# --------------------------------------------------------------------------- #
+# coverage breakdown by sector and occupation (Issue #12)
+# --------------------------------------------------------------------------- #
+def test_loader_retains_sector_and_occupation_in_sample_metadata():
+    row = dict(_ROW, sector="Information", occupation="Software Developers")
+    samples, _ = _load([row])
+    meta = samples[0][2]
+    assert meta["sector"] == "Information"
+    assert meta["occupation"] == "Software Developers"
+
+
+def test_make_scorer_computes_coverage_end_to_end():
+    """Execute the real _make_scorer async pipeline with position-swapped judging,
+    verifying that coverage tracks starting, reference-eligible, and scored stages.
+    """
+    from gbench.runners.eval_suites import base
+
+    rubric = json.dumps([{"score": 5, "criterion": "c"}])
+    traces = [
+        # Task 1: Information / Software Developers (scored)
+        {"extra_payload": {"task_id": "t1", "sector": "Information", "occupation": "Software Developers"},
+         "gold_answer": rubric, "response_text": "Answer 1",
+         "messages": [{"role": "user", "content": "Prompt 1"}]},
+        {"extra_payload": {"task_id": "t1", "sector": "Information", "occupation": "Software Developers"},
+         "gold_answer": rubric, "response_text": "Answer 1 retry",
+         "messages": [{"role": "user", "content": "Prompt 1"}]},
+        # Task 2: Information / Technical Writers (no reference shipped)
+        {"extra_payload": {"task_id": "t2", "sector": "Information", "occupation": "Technical Writers"},
+         "gold_answer": rubric, "response_text": "Answer 2",
+         "messages": [{"role": "user", "content": "Prompt 2"}]},
+        # Task 3: Manufacturing / Mechanical Engineers (scored)
+        {"extra_payload": {"task_id": "t3", "sector": "Manufacturing", "occupation": "Mechanical Engineers"},
+         "gold_answer": rubric, "response_text": "Answer 3",
+         "messages": [{"role": "user", "content": "Prompt 3"}]},
+    ]
+    refs = {
+        "t1": {"text": "Expert text for t1", "note": None, "n_files": 1},
+        "t2": {"text": None, "note": "no reference deliverable", "n_files": 0},
+        "t3": {"text": "Expert text for t3", "note": None, "n_files": 1},
+    }
+
+    async def fake_judge(prompt):
+        # A tie in position-swapped calls gives pairwise_score 0.5
+        return json.dumps({"winner": "tie"}), "gemini-3.6-flash"
+
+    metrics = {}
+    with mock.patch.object(G, "judge_generate_cascade", fake_judge):
+        asyncio.run(G._make_scorer(None, 2, metrics, refs)(traces))
+
+    assert "gdpval_report" in metrics
+    cov = metrics["gdpval_report"]["coverage"]
+
+    # Starting stage
+    assert cov["starting_tasks"] == 3
+    assert cov["by_sector"]["Information"]["starting_tasks"] == 2
+    assert cov["by_sector"]["Manufacturing"]["starting_tasks"] == 1
+
+    # Reference-eligibility stage
+    assert cov["reference_eligible_tasks"] == 2
+    assert cov["by_sector"]["Information"]["reference_eligible_tasks"] == 1
+    assert cov["by_sector"]["Information"]["no_reference_tasks"] == 1
+    assert cov["by_sector"]["Information"]["no_reference_by_reason"]["no_deliverable_shipped"] == 1
+    assert cov["by_sector"]["Manufacturing"]["reference_eligible_tasks"] == 1
+
+    # Scored stage
+    assert cov["scored_tasks"] == 2
+    assert cov["by_sector"]["Information"]["scored_tasks"] == 1
+    assert cov["by_sector"]["Information"]["scored_comparisons"] == 2
+    assert cov["by_sector"]["Information"]["win_rate"] == 1.0  # ties count as wins/ties
+    assert cov["by_sector"]["Manufacturing"]["scored_tasks"] == 1
+    assert cov["by_sector"]["Manufacturing"]["scored_comparisons"] == 1
+    assert cov["by_sector"]["Manufacturing"]["win_rate"] == 1.0
+
+    # Macro averages
+    assert cov["macro_win_rate_by_sector"] == 1.0
+    assert cov["macro_win_rate_by_sector_pct"] == 100.0
+    assert cov["macro_win_rate_by_occupation"] == 1.0
+
+
+def test_run_gdpval_full_pipeline_coverage_reporting(monkeypatch):
+    """Execute the full run_gdpval suite through base.run_eval_suite without mocking
+    _make_scorer, ensuring real coverage calculation and result attachment.
+    """
+    from gbench.runners.eval_suites import base
+
+    rubric = json.dumps([{"score": 5, "criterion": "c"}])
+    samples = [
+        ([{"role": "user", "content": "Task 1 prompt"}], rubric,
+         {"task_id": "t1", "sector": "Information", "occupation": "Software Developers", "category": "Software Developers"}),
+        ([{"role": "user", "content": "Task 2 prompt"}], rubric,
+         {"task_id": "t2", "sector": "Information", "occupation": "Technical Writers", "category": "Technical Writers"}),
+        ([{"role": "user", "content": "Task 3 prompt"}], rubric,
+         {"task_id": "t3", "sector": "Manufacturing", "occupation": "Mechanical Engineers", "category": "Mechanical Engineers"}),
+    ]
+    refs = {
+        "t1": {"text": "Expert deliverable t1", "note": None, "n_files": 1},
+        "t2": {"text": None, "note": "no deliverable shipped", "n_files": 0},
+        "t3": {"text": "Expert deliverable t3", "note": None, "n_files": 1},
+    }
+
+    async def fake_send(*args, **kwargs):
+        return base.Reply(text="Candidate model deliverable answer", tool_calls=None, finish_reason="stop")
+
+    async def fake_judge(prompt):
+        # Deliverable A wins
+        return json.dumps({"winner": "A"}), "gemini-3.6-flash"
+
+    monkeypatch.setattr(G, "gemini_required_skip", lambda *a: None)
+    monkeypatch.setattr(G, "_load_gdpval_samples", lambda limit=None: (samples, refs))
+    monkeypatch.setattr(base, "_send_single_request", fake_send)
+    monkeypatch.setattr(G, "judge_generate_cascade", fake_judge)
+
+    res = G.run_gdpval("test-model", "http://127.0.0.1:8000/v1", 1, attempt_count=1)
+
+    assert "coverage" in res
+    cov = res["coverage"]
+    assert cov["starting_tasks"] == 3
+    assert cov["reference_eligible_tasks"] == 2
+    assert cov["scored_tasks"] == 2
+
+    # Information: 2 starting, 1 reference-eligible, 1 scored
+    info = cov["by_sector"]["Information"]
+    assert info["starting_tasks"] == 2
+    assert info["reference_eligible_tasks"] == 1
+    assert info["no_reference_tasks"] == 1
+    assert info["scored_tasks"] == 1
+
+    # Manufacturing: 1 starting, 1 reference-eligible, 1 scored
+    mfg = cov["by_sector"]["Manufacturing"]
+    assert mfg["starting_tasks"] == 1
+    assert mfg["reference_eligible_tasks"] == 1
+    assert mfg["scored_tasks"] == 1
+
+    # Top-level macro fields
+    assert "macro_win_rate_by_sector_pct" in res
+    assert "macro_win_rate_by_occupation_pct" in res
+    assert "Coverage breakdown by sector and occupation" in res["scoring_note"]
+
